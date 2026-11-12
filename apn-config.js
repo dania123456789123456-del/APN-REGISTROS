@@ -3,7 +3,7 @@
    ===================================================================== */
 window.APN_CONFIG = {
   // Link /exec de tu Apps Script (Implementar > Aplicación web). Es el MISMO para todos los HTML y el dashboard.
-  API_URL: "AQUI_VA_MI_LINK",
+  API_URL: "https://script.google.com/macros/s/AKfycbwSodmr7_J0HPWKPtzOcEfD-oRLj0xxgpYFMZAi2DtfYlLnMefs2tJpKettCOicNGo/exec",
 
   // Logo institucional que va al pie de las hojas (link directo a la imagen).
   // Tip: sube la imagen a este mismo repositorio y usa https://TU_USUARIO.github.io/apn/logo.png
