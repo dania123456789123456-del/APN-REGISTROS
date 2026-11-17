@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Profesional de Gestión de Flota</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- html2canvas y jsPDF para el Visor Semanal descargable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --color-primary: #1e40af;
+            --color-primary-hover: #1d4ed8;
+            --color-secondary: #3b82f6;
+            --color-bg-light: #f8fafc;
+            --color-card-bg: #ffffff;
+            --color-text-main: #1e293b;
+            --color-text-muted: #64748b;
+            --color-border: #e2e8f0;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-warning-light: #fef3c7;
+            --color-warning-border: #f59e0b;
+            --color-danger: #ef4444;
+            --font-family: 'Inter', sans-serif;
+            --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--color-bg-light);
+            color: var(--color-text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-title p { color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+
+        .status-badge-cloud {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            gap: 0.5rem;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--color-danger); display: inline-block; }
+        .status-dot.connected { background-color: var(--color-success); }
+
+        .navigation-tabs {
+            display: flex;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 0.4rem;
+            margin-bottom: 2rem;
+            gap: 0.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-tab {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            background: none;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .nav-tab:hover { color: var(--color-primary); background-color: #eff6ff; }
+        .nav-tab.active { color: white; background-color: var(--color-primary); }
+
+        .app-screen { display: none; }
+        .app-screen.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--color-card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: var(--transition-smooth);
+        }
+
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+        .stat-info h3 {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-info .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--color-text-main); }
+
+        .stat-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-blue { background-color: #eff6ff; color: var(--color-secondary); }
+        .icon-yellow { background-color: #fef3c7; color: var(--color-warning); }
+        .icon-green { background-color: #ecfdf5; color: var(--color-success); }
+
+        .content-panel {
+            background-color: var(--color-card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .panel-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            text-decoration: none;
+        }
+
+        .btn-primary { background-color: var(--color-primary); color: white; }
+        .btn-primary:hover { background-color: var(--color-primary-hover); }
+        .btn-success { background-color: var(--color-success); color: white; }
+        .btn-success:hover { opacity: 0.9; }
+        .btn-danger { background-color: var(--color-danger); color: white; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-secondary { background-color: var(--color-card-bg); color: var(--color-text-main); border: 1px solid var(--color-border); }
+        .btn-secondary:hover { background-color: var(--color-bg-light); }
+
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted); }
+
+        .form-control {
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--color-border);
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            outline: none;
+            background-color: #ffffff;
+            transition: var(--transition-smooth);
+            width: 100%;
+        }
+
+        .form-control:focus { border-color: var(--color-secondary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .form-control[readonly] { background-color: var(--color-bg-light); cursor: not-allowed; color: var(--color-text-muted); }
+
+        .passenger-quick-select-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .passenger-quick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            background-color: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .passenger-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background-color: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+            transition: var(--transition-smooth);
+        }
+
+        .passenger-item:hover { border-color: var(--color-secondary); background-color: #eff6ff; }
+        .passenger-item.selected { background-color: #eff6ff; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.1); }
+        .passenger-item input[type="checkbox"] { cursor: pointer; width: 16px; height: 16px; accent-color: var(--color-primary); }
+        .passenger-item-name { font-size: 0.8rem; font-weight: 500; color: var(--color-text-main); }
+
+        .list-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .list-card {
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .list-card-header {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--color-primary);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .data-list-scroller {
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-right: 0.25rem;
+        }
+
+        .data-row-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .data-row-info { display: flex; flex-direction: column; }
+        .data-row-title { font-weight: 600; color: var(--color-text-main); }
+        .data-row-subtitle { font-size: 0.75rem; color: var(--color-text-muted); }
+
+        .btn-icon-del {
+            background: none;
+            border: none;
+            color: var(--color-danger);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-icon-del:hover { background-color: #fee2e2; }
+
+        .table-responsive { overflow-x: auto; width: 100%; border-radius: 0.5rem; border: 1px solid var(--color-border); }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+
+        th {
+            background-color: var(--color-bg-light);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            border-bottom: 1px solid var(--color-border);
+            white-space: nowrap;
+        }
+
+        td { padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); vertical-align: middle; color: var(--color-text-main); white-space: nowrap; }
+        tr:hover td { background-color: #f8fafc; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-disponible { background-color: #ecfdf5; color: #065f46; }
+        .badge-ruta { background-color: #fef3c7; color: #92400e; }
+
+        .pasajeros-container { display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 250px; }
+
+        .pasajero-chip {
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid var(--color-border);
+        }
+
+        /* ==========================================================================
+           VISOR SEMANAL (BITÁCORA AGRUPADA POR DÍA Y POR VIAJE, DESCARGABLE)
+           ========================================================================== */
+        .historial-subtabs {
+            display: flex;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 0.35rem;
+            margin-bottom: 1.5rem;
+            gap: 0.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .subtab-btn {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            background: none;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .subtab-btn:hover { color: var(--color-primary); background-color: #eff6ff; }
+        .subtab-btn.active { color: white; background-color: var(--color-primary); }
+
+        .visor-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .visor-semana-nav { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+
+        .visor-semana-label {
+            font-weight: 700;
+            color: var(--color-primary);
+            font-size: 0.95rem;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .visor-descarga-btns { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+        #visorSemanalContent { background-color: #ffffff; padding: 1.5rem; border-radius: 0.75rem; }
+
+        .visor-day-block { margin-bottom: 2rem; }
+        .visor-day-block:last-child { margin-bottom: 0; }
+
+        .visor-day-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.02em;
+        }
+
+        table.visor-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 1rem; }
+
+        table.visor-table th {
+            background-color: #f87171;
+            color: #7f1d1d;
+            border: 1px solid #ef4444;
+            padding: 0.6rem 0.5rem;
+            text-align: center;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        table.visor-table td {
+            border: 1px solid #fca5a5;
+            padding: 0.55rem 0.5rem;
+            text-align: center;
+            color: var(--color-text-main);
+            white-space: normal;
+        }
+
+        table.visor-table td.visor-nombre-cell { text-align: left; font-weight: 600; }
+        table.visor-table td.visor-obs-cell { text-align: left; }
+
+        .visor-logo-footer { display: flex; justify-content: center; margin-top: 1.5rem; }
+        .visor-logo-footer img { max-height: 70px; }
+
+        .visor-empty-msg { text-align: center; color: var(--color-text-muted); padding: 1rem; font-size: 0.85rem; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-box {
+            background-color: var(--color-card-bg);
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border);
+            transform: scale(0.95);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.active .modal-box { transform: scale(1); }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--color-bg-light);
+        }
+
+        .modal-header h3 { font-size: 1.15rem; font-weight: 700; color: var(--color-primary); }
+
+        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-text-muted); transition: var(--transition-smooth); }
+        .modal-close:hover { color: var(--color-danger); }
+
+        .modal-body { padding: 1.5rem; overflow-y: auto; }
+
+        .modal-footer {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            background-color: var(--color-bg-light);
+        }
+
+        .alert-box {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            margin-bottom: 1.25rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-warning { background-color: var(--color-warning-light); border-left: 4px solid var(--color-warning-border); color: #92400e; }
+        .alert-success { background-color: #ecfdf5; border-left: 4px solid var(--color-success); color: #065f46; }
+
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .toast {
+            background-color: var(--color-card-bg);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            transform: translateX(120%);
+            transition: transform 0.25s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .toast.show { transform: translateX(0); }
+        .toast-success { border-left: 4px solid var(--color-success); }
+        .toast-danger { border-left: 4px solid var(--color-danger); }
+        .toast-warning { border-left: 4px solid var(--color-warning); }
+        .toast-content { flex-grow: 1; }
+        .toast-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.15rem; }
+        .toast-msg { font-size: 0.8rem; color: var(--color-text-muted); }
+
+        @media (max-width: 768px) {
+            .dashboard-container { padding: 1rem 0.75rem; }
+            .navigation-tabs { flex-direction: column; }
+            .form-grid-2 { grid-template-columns: 1fr; }
+            .panel-header { flex-direction: column; align-items: stretch; }
+            header { flex-direction: column; align-items: flex-start; }
+            .historial-subtabs { flex-direction: column; }
+            .visor-toolbar { flex-direction: column; align-items: stretch; }
+            .visor-semana-nav { justify-content: center; }
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
+    <style id="tema-ios-glass">
+/* ==========================================================================
+   TEMA "iOS LIQUID GLASS" (estilo iPhone 17) — compartido por los 3 HTML.
+   FONDO: pon el link de tu imagen en la constante FONDO_URL (más abajo,
+   en la constante FONDO_URL del script final) o toca "Fondo" en el Menú Principal.
+   ========================================================================== */
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.58);
+    --glass-bg-strong: rgba(255, 255, 255, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.65);
+    --glass-blur: blur(26px) saturate(180%);
+    --glass-shadow: 0 10px 36px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255,255,255,0.85);
+    --ios-radius: 1.5rem;
+    --color-primary: #0a84ff;
+    --color-primary-hover: #0070e0;
+    --color-secondary: #0a84ff;
+    --color-text-muted: #475569;
+    --color-card-bg: rgba(255, 255, 255, 0.58);
+    --color-bg-light: rgba(255, 255, 255, 0.45);
+    --color-border: rgba(255, 255, 255, 0.6);
+    --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+}
+html { min-height: 100%; }
+body {
+    background-color: #0f172a;
+    background-image: var(--fondo-img, radial-gradient(1200px 700px at 15% 10%, #3b82f6 0%, transparent 60%), radial-gradient(1000px 700px at 90% 20%, #a855f7 0%, transparent 55%), radial-gradient(900px 700px at 50% 100%, #10b981 0%, transparent 55%), linear-gradient(160deg, #0f172a, #1e293b));
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background: linear-gradient(160deg, rgba(10,14,30,0.35) 0%, rgba(10,14,30,0.55) 100%);
+    z-index: 0; pointer-events: none;
+}
+.dashboard-container { position: relative; z-index: 1; padding-bottom: 7rem; }
+
+/* Cristal */
+header, .navigation-tabs, .stat-card, .content-panel, .list-card, .status-badge-cloud,
+.historial-subtabs, .visor-toolbar, .alert-box {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: var(--ios-radius) !important;
+}
+header { padding: 1.1rem 1.4rem !important; border-bottom: 1px solid var(--glass-border) !important; }
+.status-badge-cloud { border-radius: 9999px !important; box-shadow: 0 4px 14px rgba(15,23,42,0.15) !important; }
+.header-title h1 { color: #0b1220 !important; font-size: 1.35rem !important; letter-spacing: -0.02em; }
+.header-title p { color: #334155 !important; }
+
+.btn-volver {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .5rem .95rem; border-radius: 9999px; text-decoration: none;
+    font-weight: 600; font-size: .85rem; color: #0b1220;
+    background: var(--glass-bg-strong); border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 14px rgba(15,23,42,.15);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+
+/* Botones */
+.btn { border-radius: 9999px !important; font-weight: 600; }
+.btn-primary { background: linear-gradient(180deg, #38a0ff, #0a84ff) !important; color: #fff !important; box-shadow: 0 6px 16px rgba(10,132,255,.4); border: none !important; }
+.btn-success { background: linear-gradient(180deg, #4ade80, #22c55e) !important; box-shadow: 0 6px 16px rgba(34,197,94,.35); }
+.btn-danger { background: linear-gradient(180deg, #ff6b6b, #ef4444) !important; }
+.btn-secondary { background: var(--glass-bg-strong) !important; border: 1px solid var(--glass-border) !important; color: #0b1220 !important; }
+.btn-warning { border-radius: 9999px !important; }
+
+/* Formularios */
+.form-control, select.form-control, input.form-control, textarea.form-control {
+    background: rgba(255,255,255,0.7) !important;
+    border: 1px solid rgba(255,255,255,0.85) !important;
+    border-radius: 1rem !important;
+    color: #0b1220;
+}
+.form-control:focus { box-shadow: 0 0 0 3px rgba(10,132,255,.3) !important; border-color: #0a84ff !important; }
+.form-group label { color: #1e293b !important; }
+
+/* Pestañas */
+.navigation-tabs { padding: .4rem !important; border-radius: 9999px !important; }
+.nav-tab { border-radius: 9999px !important; color: #1e293b !important; }
+.nav-tab:hover { background: rgba(255,255,255,.55) !important; color: #0a84ff !important; }
+.nav-tab.active { background: linear-gradient(180deg, #38a0ff, #0a84ff) !important; color: #fff !important; box-shadow: 0 6px 16px rgba(10,132,255,.4); }
+.subtab-btn { border-radius: 9999px !important; }
+.subtab-btn.active { background: linear-gradient(180deg, #38a0ff, #0a84ff) !important; color: #fff !important; }
+
+/* Tablas de datos */
+.table-responsive { background: rgba(255,255,255,.35); border: 1px solid var(--glass-border) !important; border-radius: 1.1rem !important; }
+th { background: rgba(255,255,255,.55) !important; color: #0b1220 !important; }
+tr:hover td { background-color: rgba(255,255,255,.55) !important; }
+.data-row-item, .passenger-item, .tipo-option { background: rgba(255,255,255,.55) !important; border-color: var(--glass-border) !important; border-radius: 1rem !important; }
+.passenger-item.selected { background: rgba(10,132,255,.18) !important; border-color: #0a84ff !important; }
+
+/* Modales y avisos */
+.modal-overlay { background: rgba(10,14,30,.45) !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.modal-box { background: rgba(255,255,255,.82) !important; -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border) !important; border-radius: 1.75rem !important; box-shadow: 0 24px 70px rgba(0,0,0,.4) !important; }
+.toast { background: rgba(255,255,255,.88) !important; -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-radius: 1.1rem !important; }
+
+/* El visor semanal se mantiene BLANCO y legible (es lo que se descarga) */
+#visorSemanalContent { background: #ffffff !important; border-radius: 1.25rem !important; box-shadow: var(--glass-shadow); }
+
+/* Indicador de conexión / pendientes */
+.cola-pill { display:inline-flex; align-items:center; gap:.4rem; padding:.2rem .6rem; border-radius:9999px; font-size:.72rem; font-weight:700; background:#fef3c7; color:#92400e; }
+
+/* Celular: pestañas como barra inferior flotante (estilo iPhone) */
+@media (max-width: 768px) {
+    .dashboard-container { padding: 1rem .75rem 7rem !important; }
+    .navigation-tabs {
+        position: fixed !important; left: .75rem; right: .75rem; bottom: max(.75rem, env(safe-area-inset-bottom));
+        flex-direction: row !important; z-index: 900; margin: 0 !important; gap: .15rem !important;
+    }
+    .nav-tab { padding: .65rem .35rem !important; font-size: .72rem !important; flex-direction: column; gap: .15rem !important; }
+    .header-title h1 { font-size: 1.1rem !important; }
+    .stats-grid { gap: .75rem !important; }
+}
+
+    </style>
+    <script>
+        // =======================================================
+        // IMAGEN DE FONDO POR LINK
+        // Pega aquí el link directo de tu imagen, o toca el botón "Fondo"
+        // en el Menú Principal (se guarda y se aplica a los 3 archivos
+        // siempre que estén en el mismo sitio/dominio).
+        // =======================================================
+        const FONDO_URL = "";
+        (function () {
+            let u = "";
+            try { u = localStorage.getItem('apn_fondo_url') || ""; } catch (e) {}
+            u = u || FONDO_URL;
+            if (u) document.documentElement.style.setProperty('--fondo-img', 'url("' + u.replace(/"/g, '%22') + '")');
+        })();
+    </script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <style id="apn-fix-movil">
+        /* Quita el recuadro azul (marca de agua) que Android dibuja al tocar */
+        * { -webkit-tap-highlight-color: transparent; }
+        a, button, [onclick], .glass-card, .nav-tab, .subtab-btn, .btn { outline: none; }
+        a:focus-visible, button:focus-visible, .glass-card:focus-visible { outline: 3px solid rgba(10,132,255,.55); outline-offset: 2px; }
+        /* Botones Imagen y PDF del visor semanal: al centro del contenedor */
+        .visor-toolbar { align-items: center !important; }
+        .visor-descarga-btns { justify-content: center !important; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+
+        <header>
+            <a class="btn-volver no-print" href="index.html">‹ Menú</a>
+            <div class="header-title">
+                <h1>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M13 17H9"/><path d="M13 11V7"/></svg>
+                    Control de ingreso y salida de vehículos
+                </h1>
+                <p>Gestión automatizada de ingreso y salida vehícular</p>
+            </div>
+
+            <div class="status-badge-cloud" id="syncStatusBadge">
+                <span class="status-dot" id="syncStatusDot"></span>
+                <span id="syncStatusText">Cargando modo...</span>
+            </div>
+
+            <div class="status-badge-cloud" id="sesionBadge" style="cursor: default;">
+                <span class="status-dot" id="sesionDot"></span>
+                <span id="sesionText">Solo Lectura</span>
+                <button id="btnSesionAccion" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; margin-left: 0.25rem;">Iniciar sesión</button>
+            </div>
+        </header>
+
+        <nav class="navigation-tabs no-print">
+            <button class="nav-tab active" id="tab-btn-operaciones" onclick="switchTab('operaciones')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                Operaciones de Ruta
+            </button>
+            <button class="nav-tab" id="tab-btn-historial" onclick="switchTab('historial')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Bitácora de Historial
+            </button>
+        </nav>
+
+        <div class="stats-grid no-print">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>Total Viajes</h3>
+                    <div class="stat-value" id="statTotalViajes">0</div>
+                </div>
+                <div class="stat-icon-wrapper icon-blue">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>Vehículo en Ruta</h3>
+                    <div class="stat-value" id="statEnRuta">0</div>
+                </div>
+                <div class="stat-icon-wrapper icon-yellow">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-info">
+                    <h3>Km Totales</h3>
+                    <div class="stat-value" id="statKmRecorridos">0 km</div>
+                </div>
+                <div class="stat-icon-wrapper icon-green">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="app-screen active" id="screen-operaciones">
+            <div class="content-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.5 2h-13C4.7 2 4 2.7 4 3.5v17c0 .8.7 1.5 1.5 1.5h13c.8 0 1.5-.7 1.5-1.5v-17c0-.8-.7-1.5-1.5-1.5z"/><path d="M12 2v20"/><path d="m8 8 4 4 4-4"/></svg>
+                        Vehículo en Tránsito y Acciones Rápidas
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="openModalSalida()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                            Registrar Salida de Vehículo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vehículo</th>
+                                <th>Conductor</th>
+                                <th>Destino</th>
+                                <th>Motivo</th>
+                                <th>Pasajeros</th>
+                                <th>Hora de Salida</th>
+                                <th>Km Inicial</th>
+                                <th>Estado</th>
+                                <th style="text-align: right;">Acciones de Entrada</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBodyRutasActivas"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="app-screen" id="screen-historial">
+
+            <div class="historial-subtabs no-print">
+                <button class="subtab-btn active" id="subtab-btn-tabla" onclick="switchHistorialSubVista('tabla')">Tabla con Filtros</button>
+                <button class="subtab-btn" id="subtab-btn-visor" onclick="switchHistorialSubVista('visor')">Visor Semanal (Descargable)</button>
+            </div>
+
+            <div id="historialVistaTabla">
+                <div class="content-panel no-print">
+                    <div class="panel-title" style="margin-bottom: 1rem; font-size:1rem;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                        Filtros de Búsqueda
+                    </div>
+                    <div class="filters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem;">
+                        <div class="form-group">
+                            <label for="searchGeneral">Buscar texto</label>
+                            <input type="text" id="searchGeneral" class="form-control" placeholder="Placa, conductor, destino, motivo o pasajero..." oninput="filterData()">
+                        </div>
+                        <div class="form-group">
+                            <label for="filterFechaInicio">Desde</label>
+                            <input type="date" id="filterFechaInicio" class="form-control" onchange="filterData()">
+                        </div>
+                        <div class="form-group">
+                            <label for="filterFechaFin">Hasta</label>
+                            <input type="date" id="filterFechaFin" class="form-control" onchange="filterData()">
+                        </div>
+                        <div class="form-group" style="justify-content: flex-end;">
+                            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="resetFilters()">
+                                Restablecer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            Historial Completo de Viajes
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="mainHistorialTable">
+                            <thead>
+                                <tr>
+                                    <th>Vehículo</th>
+                                    <th>Conductor</th>
+                                    <th>Destino</th>
+                                    <th>Motivo</th>
+                                    <th>Pasajeros</th>
+                                    <th>Salida</th>
+                                    <th>Km Salida</th>
+                                    <th>Llegada</th>
+                                    <th>Km Llegada</th>
+                                    <th>Recorrido</th>
+                                    <th>Estado</th>
+                                    <th class="no-print">Editar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBodyHistorial"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="historialVistaVisor" style="display:none;">
+                <div class="content-panel">
+                    <div class="visor-toolbar no-print">
+                        <div class="visor-semana-nav">
+                            <button class="btn btn-secondary" onclick="cambiarSemanaVisor(-1)">&larr; Semana anterior</button>
+                            <div class="visor-semana-label" id="visorSemanaLabel">Semana</div>
+                            <button class="btn btn-secondary" onclick="cambiarSemanaVisor(1)">Semana siguiente &rarr;</button>
+                            <button class="btn btn-secondary" onclick="irASemanaActual()">Semana Actual</button>
+                        </div>
+                        <div class="visor-descarga-btns">
+                            <button class="btn btn-primary" onclick="descargarVisorComoImagen()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Imagen
+                            </button>
+                            <button class="btn btn-primary" onclick="descargarVisorComoPDF()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="visorSemanalContent"></div>
+                </div>
+            </div>
+
+        </div>
+
+
+
+    </div>
+
+
+    <div id="modalSalida" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Registrar Salida de Vehículo</h3>
+                <button class="modal-close" onclick="closeModal('modalSalida')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formSalida">
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="sVehiculo">Vehículo Asignado</label>
+                            <select id="sVehiculo" class="form-control" required onchange="onVehiculoSelected(this.value)"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sConductor">Conductor Responsable</label>
+                            <select id="sConductor" class="form-control" required></select>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="sDestino">Destino Planificado</label>
+                            <input type="text" id="sDestino" class="form-control" placeholder="Ej: Planta Sur" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sMotivo">Motivo o Misión</label>
+                            <input type="text" id="sMotivo" class="form-control" placeholder="Ej: Entrega urgente" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <span class="passenger-quick-select-label">Seleccionar Pasajeros a Bordo (Toca para marcar)</span>
+                        <div class="passenger-quick-grid" id="sPasajerosSelectionGrid"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="sKmSalida">Kilometraje de Salida</label>
+                        <input type="number" id="sKmSalida" class="form-control" min="0" required>
+                    </div>
+
+                    <div id="kmAlerta" class="alert-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span id="kmAlertaTexto">Buscando historial...</span>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="sFecha">Fecha de Salida</label>
+                            <input type="date" id="sFecha" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sHora">Hora de Salida</label>
+                            <input type="time" id="sHora" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 0.75rem; margin-bottom: 1rem; justify-content: center;" onclick="setDateTimeNow('sFecha', 'sHora')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Usar fecha y hora actual
+                    </button>
+
+                    <div class="form-group">
+                        <label for="sObs">Observaciones</label>
+                        <textarea id="sObs" class="form-control" rows="2" placeholder="Detalles de salida..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modalSalida')">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveSalida()">Proceder Despacho</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="modalIngreso" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Registrar Retorno / Ingreso de Unidad</h3>
+                <button class="modal-close" onclick="closeModal('modalIngreso')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formIngreso">
+                    <input type="hidden" id="iRecordId">
+                    <input type="hidden" id="iKmSalidaReferencia">
+
+                    <p style="margin-bottom:1.25rem; font-size:0.95rem; background:#eff6ff; padding:0.75rem; border-radius:0.5rem; border:1px solid #bfdbfe;">
+                        Vehículo: <strong id="iVehiculoTxt" style="color:var(--color-primary);"></strong> | 
+                        Km Salida: <strong id="iKmSalidaTxt" style="color:var(--color-text-main);"></strong>
+                    </p>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="iKmLlegada">Kilometraje de Llegada</label>
+                            <input type="number" id="iKmLlegada" class="form-control" min="0" required oninput="calcularDiferenciaKm()">
+                        </div>
+                        <div class="form-group">
+                            <label>Distancia Recorrida</label>
+                            <div id="iKmRecorridosDisplay" style="font-weight:700; font-size:1.15rem; padding: 0.65rem 0.85rem; background: var(--color-bg-light); border-radius:0.5rem; text-align:center; color: var(--color-success); border: 1px dashed var(--color-border);">
+                                0 km
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <span class="passenger-quick-select-label">Acompañantes que retornan (agrega o quita si alguien subió o se quedó)</span>
+                        <div class="passenger-quick-grid" id="iPasajerosSelectionGrid"></div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="iFecha">Fecha de Entrada</label>
+                            <input type="date" id="iFecha" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="iHora">Hora de Entrada</label>
+                            <input type="time" id="iHora" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 0.75rem; margin-bottom: 1rem; justify-content: center;" onclick="setDateTimeNow('iFecha', 'iHora')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Usar fecha y hora actual
+                    </button>
+
+                    <div class="form-group">
+                        <label for="iObs">Observaciones de Llegada</label>
+                        <textarea id="iObs" class="form-control" rows="2" placeholder="Reporte del estado del vehículo al retornar..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modalIngreso')">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="saveIngreso()">Registrar Ingreso</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalLogin" class="modal-overlay">
+        <div class="modal-box" style="max-width: 380px;">
+            <div class="modal-header">
+                <h3>Iniciar Sesión</h3>
+                <button class="modal-close" onclick="closeModal('modalLogin')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Inicia sesión para poder corregir datos ya guardados en el historial. Sin sesión, solo puedes consultar la información.
+                </p>
+                <div class="form-group" style="margin-bottom: 0.9rem;">
+                    <label for="loginUsuario">Usuario</label>
+                    <input type="text" id="loginUsuario" class="form-control" placeholder="Usuario" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="loginContrasena">Contraseña</label>
+                    <input type="password" id="loginContrasena" class="form-control" placeholder="Contraseña" onkeydown="if(event.key==='Enter') intentarLogin();">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modalLogin')">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="intentarLogin()">Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalEditar" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Editar Registro de Viaje</h3>
+                <button class="modal-close" onclick="closeModal('modalEditar')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="eRecordId">
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="eDestino">Destino</label>
+                        <input type="text" id="eDestino" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="eMotivo">Motivo</label>
+                        <input type="text" id="eMotivo" class="form-control">
+                    </div>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="eFechaSalida">Fecha de Salida</label>
+                        <input type="date" id="eFechaSalida" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="eHoraSalida">Hora de Salida</label>
+                        <input type="time" id="eHoraSalida" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="eKmSalida">Kilometraje de Salida</label>
+                    <input type="number" id="eKmSalida" class="form-control">
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--color-border); margin-bottom: 1.25rem;">
+
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label for="eFechaIngreso">Fecha de Ingreso</label>
+                        <input type="date" id="eFechaIngreso" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="eHoraIngreso">Hora de Ingreso</label>
+                        <input type="time" id="eHoraIngreso" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="eKmLlegada">Kilometraje de Llegada</label>
+                    <input type="number" id="eKmLlegada" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="eObsSalida">Observaciones de Salida</label>
+                    <textarea id="eObsSalida" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="form-group" style="margin-top: 0.9rem;">
+                    <label for="eObsIngreso">Observaciones de Llegada</label>
+                    <textarea id="eObsIngreso" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="eliminarRegistroViaje()">Eliminar</button>
+                <button class="btn btn-secondary" onclick="closeModal('modalEditar')">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarEdicionRegistro()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="toast-container" id="toastContainer"></div>
+
+
+    <script src="apn-config.js"></script>
+    <script src="apn-core.js"></script>
+    <script src="apn-reportes.js"></script>
+    <script>
+        const API_URL = (window.APN_CONFIG && APN_CONFIG.API_URL) || "AQUI_VA_MI_LINK";   // se configura en apn-config.js
+
+        /* =======================================================
+          LOGO / MEMBRETE PARA EL VISOR SEMANAL (opcional)
+          Pega aquí el link directo (URL) de una imagen para que
+          aparezca al pie del Visor Semanal al descargarlo como
+          Imagen o PDF. Déjalo como "" si no quieres logo.
+        */
+        const LOGO_URL = (window.APN_CONFIG && APN_CONFIG.LOGO_URL) || "";
+
+
+        let appState = {
+            vehicles: [],
+            records: [],
+            passengers: []
+        };
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeStorage();
+            verifyAPIConnection();
+            renderAllData();
+            actualizarUISesion();
+        });
+
+        // El acceso (usuario/contraseña del agente) lo maneja apn-core.js
+
+        function haySesionActiva() { return !!window.APN && !!APN.usuario(); }
+
+        function actualizarUISesion() { /* la sesión la maneja apn-core.js */ }
+
+        
+        
+        
+
+        function sincronizar() {
+            // Vehículos, conductores, personal y registros vienen del dashboard (y de lo pendiente de subir)
+            appState.vehicles = APN.vehiculos().map(v => ({ id: v.id, placa: v.placa, marca: v.descripcion || '', modelo: '' }));
+            // Solo el personal que viaja de pasajero: sin agentes (ya están a bordo) ni conductores
+            appState.passengers = APN.personas(['trabajador', 'limpieza']).map(p => p.nombre);
+            appState.conductores = APN.personas(['conductor']).map(p => p.nombre);
+            appState.records = APN.registros('vehicular');
+        }
+
+        function initializeStorage() { sincronizar(); }
+
+        function saveToLocalStorage() { sincronizar(); }
+
+
+        function verifyAPIConnection() {
+            APN.init({
+                api: API_URL, modulo: 'vehicular', turno: true, toast: showToast,
+                onDatos: () => { sincronizar(); renderAllData(); if (historialSubVistaActual === 'visor') renderVisorSemanal(); }
+            });
+            APN.on('cola', () => { sincronizar(); renderAllData(); if (historialSubVistaActual === 'visor') renderVisorSemanal(); });
+        }
+
+        // =======================================================
+        // SINCRONIZACIÓN CON COLA SIN CONEXIÓN
+        // Todo lo que se registra se guarda primero en el celular. Si no hay
+        // Internet, queda en una cola y se sube SOLO a Google Sheets (Apps
+        // Script) apenas vuelva la conexión, en el mismo orden en que se hizo.
+        // =======================================================
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.app-screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            document.getElementById(`screen-${tabId}`).classList.add('active');
+            document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+
+            window.scrollTo(0, 0);
+
+            document.querySelectorAll('.table-responsive, .data-list-scroller').forEach(el => {
+                el.scrollTop = 0;
+                el.scrollLeft = 0;
+            });
+
+            if (tabId === 'operaciones' || tabId === 'historial') {
+                renderAllData();
+            }
+
+            if (tabId === 'historial' && historialSubVistaActual === 'visor') {
+                renderVisorSemanal();
+            }
+        }
+
+
+        function renderAllData() {
+            const totalViajes = appState.records.length;
+            const enRuta = appState.records.filter(r => r.estado === 'En ruta').length;
+            let totalKm = 0;
+            appState.records.forEach(r => {
+                if (r.kmRecorridos) totalKm += parseFloat(r.kmRecorridos);
+            });
+
+            document.getElementById('statTotalViajes').textContent = totalViajes;
+            document.getElementById('statEnRuta').textContent = enRuta;
+            document.getElementById('statKmRecorridos').textContent = formatNumber(totalKm) + ' km';
+
+            renderTableOperaciones();
+            renderTableHistorial();
+            renderScrollerVehicles();
+            renderScrollerPasajeros();
+        }
+
+        function renderTableOperaciones() {
+            const tbody = document.getElementById('tableBodyRutasActivas');
+            tbody.innerHTML = '';
+
+            const activeJourneys = appState.records.filter(r => r.estado === 'En ruta');
+
+            if (activeJourneys.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--color-text-muted); padding: 3rem 1.5rem;">
+                            <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">No hay vehículos activos en ruta</div>
+                            <p style="font-size:0.85rem;">Todos los autos se encuentran actualmente en base o disponibles.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            activeJourneys.forEach(record => {
+                const tr = document.createElement('tr');
+                let pasajerosHTML = '<span style="color:var(--color-text-muted); font-size:0.8rem;">Sin pasajeros</span>';
+                if (record.pasajeros && record.pasajeros.length > 0) {
+                    pasajerosHTML = '<div class="pasajeros-container">';
+                    record.pasajeros.forEach(p => {
+                        pasajerosHTML += `<span class="pasajero-chip">${p}</span>`;
+                    });
+                    pasajerosHTML += '</div>';
+                }
+
+                tr.innerHTML = `
+                    <td style="font-weight:700; color:var(--color-primary);">${record.vehiculoPlaca}</td>
+                    <td style="font-weight:500;">${record.conductor}</td>
+                    <td>${record.destino}</td>
+                    <td>${record.motivo || '-'}</td>
+                    <td>${pasajerosHTML}</td>
+                    <td>${formatDate(record.fechaSalida)} ${record.horaSalida}</td>
+                    <td>${formatNumber(record.kmSalida)} km</td>
+                    <td>
+                        <span class="badge badge-ruta">
+                            <span class="status-dot" style="background-color: var(--color-warning); width:6px; height:6px;"></span>
+                            En ruta
+                        </span>
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-success" style="padding: 0.45rem 0.85rem; font-size: 0.8rem;" onclick="openModalIngreso('${record.id}')">
+                            Registrar Ingreso
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ----------------------------------------------------- corregir o eliminar un viaje PROPIO
+        // El conductor y los pasajeros no se cambian aquí; si te equivocaste de personal, elimina el viaje y regístralo de nuevo.
+        function abrirEdicionRegistro(id) {
+            const r = appState.records.find(x => String(x.id) === String(id));
+            if (!r) return;
+            if (!APN.puedeEditar(r)) { showToast('No permitido', 'Solo puedes corregir los viajes que tú registraste. Pide al supervisor que lo corrija en el dashboard.', 'warning'); return; }
+            document.getElementById('eRecordId').value = r.id;
+            document.getElementById('eDestino').value = r.destino || '';
+            document.getElementById('eMotivo').value = r.motivo || '';
+            document.getElementById('eFechaSalida').value = r.fechaSalida || '';
+            document.getElementById('eHoraSalida').value = r.horaSalida || '';
+            document.getElementById('eKmSalida').value = r.kmSalida === undefined ? '' : r.kmSalida;
+            document.getElementById('eFechaIngreso').value = r.fechaIngreso || '';
+            document.getElementById('eHoraIngreso').value = r.horaIngreso || '';
+            document.getElementById('eKmLlegada').value = r.kmLlegada === undefined ? '' : r.kmLlegada;
+            document.getElementById('eObsSalida').value = r.obsSalida || '';
+            document.getElementById('eObsIngreso').value = r.obsIngreso || '';
+            openModal('modalEditar');
+        }
+
+        function guardarEdicionRegistro() {
+            const id = document.getElementById('eRecordId').value;
+            const v = i => document.getElementById(i).value.trim();
+            const destino = v('eDestino'), motivo = v('eMotivo'), fs = v('eFechaSalida'), hs = v('eHoraSalida'), ks = v('eKmSalida');
+            const fi = v('eFechaIngreso'), hi = v('eHoraIngreso'), kl = v('eKmLlegada');
+            if (!destino || !motivo || !fs || !hs || ks === '') { showToast('Falta información', 'Destino, motivo, fecha, hora y kilometraje de salida son obligatorios.', 'warning'); return; }
+            const llego = !!(fi && hi);
+            if ((fi || hi || kl !== '') && !(fi && hi && kl !== '')) { showToast('Falta información', 'Para el retorno indica fecha, hora y kilometraje de llegada (o deja los tres vacíos).', 'warning'); return; }
+            if (llego && (fi + hi) < (fs + hs)) { showToast('Hora inválida', 'El ingreso no puede ser antes de la salida.', 'danger'); return; }
+            if (llego && parseFloat(kl) < parseFloat(ks)) { showToast('Kilometraje inválido', 'El kilometraje de llegada no puede ser menor que el de salida.', 'danger'); return; }
+            const cambios = {
+                id: id, destino: destino, motivo: motivo, fechaSalida: fs, horaSalida: hs, kmSalida: parseFloat(ks),
+                fechaIngreso: llego ? fi : '', horaIngreso: llego ? hi : '', kmLlegada: llego ? parseFloat(kl) : '',
+                kmRecorridos: llego ? parseFloat(kl) - parseFloat(ks) : '', estado: llego ? 'Disponible' : 'En ruta',
+                obsSalida: v('eObsSalida'), obsIngreso: v('eObsIngreso')
+            };
+            APN.editar('vehicular', cambios);
+            sincronizar(); renderAllData(); closeModal('modalEditar');
+            showToast('Corregido', 'El viaje se actualizó; el supervisor lo verá corregido.', 'success');
+        }
+
+        function eliminarRegistroViaje() {
+            const id = document.getElementById('eRecordId').value;
+            const r = appState.records.find(x => String(x.id) === String(id));
+            if (!r || !confirm(`¿Eliminar el viaje de ${r.vehiculoPlaca} (${r.fechaSalida} ${r.horaSalida})? También se quitarán las salidas del personal que iba a bordo. Queda anotado en la bitácora.`)) return;
+            APN.eliminar('vehicular', id);
+            sincronizar(); renderAllData(); closeModal('modalEditar');
+            showToast('Eliminado', 'El viaje se eliminó.', 'success');
+        }
+
+        function renderTableHistorial(recordsToDisplay = appState.records) {
+            const tbody = document.getElementById('tableBodyHistorial');
+            tbody.innerHTML = '';
+
+            if (recordsToDisplay.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" style="text-align: center; color: var(--color-text-muted); padding: 2rem;">
+                            No se encontraron viajes con los filtros seleccionados.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const sorted = [...recordsToDisplay].sort((a, b) => {
+                const dateA = new Date(`${a.fechaSalida}T${a.horaSalida}`);
+                const dateB = new Date(`${b.fechaSalida}T${b.horaSalida}`);
+                return dateB - dateA;
+            });
+
+            sorted.forEach(record => {
+                const tr = document.createElement('tr');
+                
+                const esDisponible = (record.estado === 'Disponible');
+                let statusClass = esDisponible ? 'badge-disponible' : 'badge-ruta';
+                let statusText = esDisponible ? 'Finalizado' : 'En ruta';
+
+                let pasajerosHTML = '';
+                if (record.pasajeros && record.pasajeros.length > 0) {
+                    pasajerosHTML = '<div class="pasajeros-container">';
+                    record.pasajeros.forEach(p => {
+                        pasajerosHTML += `<span class="pasajero-chip">${p}</span>`;
+                    });
+                    pasajerosHTML += '</div>';
+                } else {
+                    pasajerosHTML = '<span style="color:var(--color-text-muted); font-size:0.75rem;">Sin pasajeros</span>';
+                }
+
+                tr.innerHTML = `
+                    <td style="font-weight:700; color:var(--color-primary);">${record.vehiculoPlaca}</td>
+                    <td style="font-weight:500;">${record.conductor}</td>
+                    <td>${record.destino}</td>
+                    <td>${record.motivo || '-'}</td>
+                    <td>${pasajerosHTML}</td>
+                    <td>
+                        <span style="font-size:0.75rem; color:var(--color-text-muted); display:block;">${formatDate(record.fechaSalida)}</span>
+                        <span>${record.horaSalida}</span>
+                    </td>
+                    <td>${formatNumber(record.kmSalida)}</td>
+                    <td>
+                        <span style="font-size:0.75rem; color:var(--color-text-muted); display:block;">${record.fechaIngreso ? formatDate(record.fechaIngreso) : ''}</span>
+                        <span>${record.horaIngreso || '-'}</span>
+                    </td>
+                    <td>${record.kmLlegada ? formatNumber(record.kmLlegada) : '-'}</td>
+                    <td style="font-weight:600; color:var(--color-success);">${record.kmRecorridos ? formatNumber(record.kmRecorridos) + ' km' : '-'}</td>
+                    <td>
+                        <span class="badge ${statusClass}">
+                            <span class="status-dot ${esDisponible ? 'connected' : ''}" style="width:6px; height:6px;"></span>
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="no-print">
+                        <button class="btn-icon-del btn-editar-registro" style="color: var(--color-secondary); ${APN.puedeEditar(record) ? '' : 'display: none;'}" title="Editar registro" onclick="abrirEdicionRegistro('${record.id}')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            actualizarUISesion();
+        }
+
+        function renderScrollerVehicles() { /* los vehículos se administran en el dashboard */ }
+
+        function renderScrollerPasajeros() { /* el personal se administra en el dashboard */ }
+
+
+        /* =======================================================
+           VISOR SEMANAL (BITÁCORA AGRUPADA POR DÍA Y POR VIAJE, DESCARGABLE)
+           ======================================================= */
+        let historialSubVistaActual = 'tabla';
+        let visorSemanaRef = new Date();
+
+        const NOMBRES_DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        function switchHistorialSubVista(vista) {
+            historialSubVistaActual = vista;
+            document.getElementById('historialVistaTabla').style.display = vista === 'tabla' ? 'block' : 'none';
+            document.getElementById('historialVistaVisor').style.display = vista === 'visor' ? 'block' : 'none';
+
+            document.getElementById('subtab-btn-tabla').classList.toggle('active', vista === 'tabla');
+            document.getElementById('subtab-btn-visor').classList.toggle('active', vista === 'visor');
+
+            if (vista === 'visor') {
+                renderVisorSemanal();
+            }
+        }
+
+        // Devuelve los 5 días (Lunes a Viernes) de la semana de "fechaRef".
+        // Cambia el límite del for a 7 si además quieres Sábado y Domingo.
+        function obtenerDiasSemana(fechaRef) {
+            const d = new Date(fechaRef);
+            const diaSemana = d.getDay();
+            const diffLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+            const lunes = new Date(d);
+            lunes.setDate(d.getDate() + diffLunes);
+            lunes.setHours(0, 0, 0, 0);
+
+            const dias = [];
+            for (let i = 0; i < 5; i++) {
+                const dia = new Date(lunes);
+                dia.setDate(lunes.getDate() + i);
+                dias.push(dia);
+            }
+            return dias;
+        }
+
+        function fechaAISO(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatTituloDia(dateObj) {
+            const nombreDia = NOMBRES_DIAS[dateObj.getDay()];
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const yyyy = dateObj.getFullYear();
+            return `${nombreDia}   ${dd} - ${mm} - ${yyyy}`;
+        }
+
+        function cambiarSemanaVisor(direccion) {
+            visorSemanaRef = new Date(visorSemanaRef);
+            visorSemanaRef.setDate(visorSemanaRef.getDate() + direccion * 7);
+            renderVisorSemanal();
+        }
+
+        function irASemanaActual() {
+            visorSemanaRef = new Date();
+            renderVisorSemanal();
+        }
+
+        // Construye UN bloque de tabla (H.S | H.I | NOMBRES Y APELLIDOS | K.M/S | K.M/I | OBSERVACIONES)
+        // por CADA VIAJE (registro) de ese día. Fila 1 = datos de salida,
+        // Fila 2 = datos de ingreso/retorno (si ya regresó).
+        // El visor semanal usa apn-reportes.js: hojas A4 VERTICALES de tamaño fijo
+        // (un día por hoja, 4 viajes por hoja; si hay más, el día continúa en otra hoja).
+        function renderVisorSemanal() {
+            const dias = obtenerDiasSemana(visorSemanaRef);
+            const contenedor = document.getElementById('visorSemanalContent');
+            if (!contenedor) return;
+            const fmt = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            const labelEl = document.getElementById('visorSemanaLabel');
+            if (labelEl) labelEl.textContent = `Semana del ${fmt(dias[0])} al ${fmt(dias[dias.length - 1])}`;
+            if (!window.APNReportes) { contenedor.innerHTML = '<p style="padding:1rem">No se pudo cargar apn-reportes.js</p>'; return; }
+            APNReportes.onAviso = m => showToast('Aviso', m, 'warning');
+            let w = document.getElementById('visorEscala');
+            if (!w) {
+                w = document.createElement('div'); w.id = 'visorEscala'; w.style.cssText = 'overflow:hidden;width:100%';
+                contenedor.parentNode.insertBefore(w, contenedor); w.appendChild(contenedor);
+            }
+            const cfg = Object.assign({}, APN.config());
+            if (!cfg.logoPieUrl) cfg.logoPieUrl = LOGO_URL;
+            contenedor.style.cssText = 'width:794px;padding:0;overflow:visible;max-width:none;box-shadow:none';
+            contenedor.style.setProperty('background', 'transparent', 'important');
+            APNReportes.renderVehicular(contenedor, { records: appState.records, vehiculos: appState.vehicles, config: cfg, fechaInicio: fechaAISO(dias[0]) });
+            ajustarVisor();
+        }
+
+        // Solo se reduce la VISTA para que la hoja A4 quepa en la pantalla; la hoja real no cambia
+        function ajustarVisor() {
+            const c = document.getElementById('visorSemanalContent'), w = document.getElementById('visorEscala');
+            if (!c || !w) return;
+            const h = c.querySelector('.apn-hoja'); if (!h) return;
+            const s = Math.min(1, (w.clientWidth - 2) / h.offsetWidth);
+            c.style.transformOrigin = 'top left'; c.style.transform = `scale(${s})`;
+            w.style.height = (c.offsetHeight * s + 6) + 'px';
+        }
+        window.addEventListener('resize', () => { if (historialSubVistaActual === 'visor') ajustarVisor(); });
+
+        function nombreArchivoVisor() { return 'control_vehicular_' + fechaAISO(obtenerDiasSemana(visorSemanaRef)[0]); }
+
+        async function descargarVisorComoImagen() {
+            if (!window.APNReportes) { showToast('No disponible', 'No se cargó apn-reportes.js', 'danger'); return; }
+            showToast('Generando...', 'Armando las hojas A4.', 'warning');
+            try { await APNReportes.descargarPNG(document.getElementById('visorSemanalContent'), nombreArchivoVisor()); }
+            catch (e) { console.error(e); showToast('Error', 'No se pudo generar la imagen. Verifica tu Internet.', 'danger'); }
+        }
+
+        async function descargarVisorComoPDF() {
+            if (!window.APNReportes) { showToast('No disponible', 'No se cargó apn-reportes.js', 'danger'); return; }
+            showToast('Generando...', 'Armando el PDF en A4 vertical.', 'warning');
+            try { await APNReportes.descargarPDF(document.getElementById('visorSemanalContent'), nombreArchivoVisor()); }
+            catch (e) { console.error(e); showToast('Error', 'No se pudo generar el PDF. Verifica tu Internet.', 'danger'); }
+        }
+
+
+        function buildPassengerSelectionGrid() {
+            const grid = document.getElementById('sPasajerosSelectionGrid');
+            grid.innerHTML = '';
+
+            if (appState.passengers.length === 0) {
+                grid.innerHTML = `<span style="font-size:0.8rem; color:var(--color-text-muted);">Aún no hay personal. Créalo desde el dashboard.</span>`;
+                return;
+            }
+
+            appState.passengers.forEach((p, idx) => {
+                const div = document.createElement('div');
+                div.className = 'passenger-item';
+                div.setAttribute('data-name', p);
+                div.innerHTML = `
+                    <input type="checkbox" id="chk_pas_${idx}" value="${p}" onchange="togglePassengerVisual(this)">
+                    <span class="passenger-item-name">${p}</span>
+                `;
+                div.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        const checkbox = div.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        togglePassengerVisual(checkbox);
+                    }
+                });
+                grid.appendChild(div);
+            });
+        }
+
+        function togglePassengerVisual(checkbox) {
+            const container = checkbox.closest('.passenger-item');
+            if (checkbox.checked) {
+                container.classList.add('selected');
+            } else {
+                container.classList.remove('selected');
+            }
+        }
+
+        function getSelectedPassengers() {
+            const selected = [];
+            const checkboxes = document.querySelectorAll('#sPasajerosSelectionGrid input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                if (cb.checked) selected.push(cb.value);
+            });
+            return selected;
+        }
+
+
+        function openModalSalida() {
+            const selectVehiculo = document.getElementById('sVehiculo');
+            
+            selectVehiculo.innerHTML = '';
+
+            if (appState.vehicles.length === 0) {
+                showToast("Sin Vehículos", "Aún no hay vehículos. Créalos desde el dashboard.", "danger");
+                return;
+            }
+
+            if (appState.vehicles.length > 1) {
+                selectVehiculo.innerHTML = '<option value="">-- Elige un Vehículo --</option>';
+            }
+
+            appState.vehicles.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.id;
+                opt.textContent = v.placa + ((v.marca || v.modelo) ? ' (' + (v.marca + ' ' + v.modelo).trim() + ')' : '');
+                selectVehiculo.appendChild(opt);
+            });
+
+            if (appState.vehicles.length === 1) {
+                selectVehiculo.value = appState.vehicles[0].id;
+                onVehiculoSelected(appState.vehicles[0].id);
+            } else {
+                document.getElementById('kmAlerta').style.display = 'none';
+                document.getElementById('sKmSalida').value = '';
+            }
+
+            buildPassengerSelectionGrid();
+            llenarConductores();
+
+            // La fecha y hora quedan vacías: el usuario debe presionar
+            // "Usar fecha y hora actual" para completarlas, o escribirlas
+            // manualmente si el registro corresponde a otro momento.
+            document.getElementById('sFecha').value = '';
+            document.getElementById('sHora').value = '';
+
+            openModal('modalSalida');
+        }
+
+        function llenarConductores() {
+            const sel = document.getElementById('sConductor');
+            const lista = appState.conductores || [];
+            sel.innerHTML = lista.length === 1 ? '' : '<option value="">-- Elige al conductor --</option>';
+            lista.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+            if (lista.length === 1) sel.value = lista[0];
+            if (lista.length === 0) { sel.innerHTML = '<option value="">Sin conductores: créalos en el dashboard</option>'; }
+        }
+
+        function onVehiculoSelected(vehId) {
+            const alertBox = document.getElementById('kmAlerta');
+            const alertText = document.getElementById('kmAlertaTexto');
+            const kmInput = document.getElementById('sKmSalida');
+
+            if (!vehId) {
+                alertBox.style.display = 'none';
+                kmInput.value = '';
+                return;
+            }
+
+            const estaEnRuta = appState.records.some(r => r.vehiculoId === vehId && r.estado === 'En ruta');
+            if (estaEnRuta) {
+                showToast("Vehículo Ocupado", "Este vehículo está operando actualmente en ruta. Debe retornar primero.", "danger");
+                document.getElementById('sVehiculo').value = '';
+                alertBox.style.display = 'none';
+                kmInput.value = '';
+                return;
+            }
+
+            const lastArrivalKm = getLastArrivalKm(vehId);
+
+            if (lastArrivalKm !== null) {
+                kmInput.value = lastArrivalKm;
+                alertBox.className = "alert-box alert-success";
+                alertText.innerHTML = `Kilometraje inicial completado automáticamente: <strong>${formatNumber(lastArrivalKm)} km</strong> (Basado en historial anterior).`;
+                alertBox.style.display = 'flex';
+            } else {
+                kmInput.value = '';
+                alertBox.className = "alert-box alert-warning";
+                alertText.innerHTML = "No se localizó un kilometraje anterior de llegada. Escríbelo manualmente.";
+                alertBox.style.display = 'flex';
+            }
+        }
+
+        function getLastArrivalKm(vehId) {
+            const completed = appState.records.filter(r => r.vehiculoId === vehId && r.estado === 'Disponible' && r.kmLlegada);
+            if (completed.length === 0) return null;
+
+            completed.sort((a, b) => {
+                const dA = new Date(`${a.fechaIngreso}T${a.horaIngreso}`);
+                const dB = new Date(`${b.fechaIngreso}T${b.horaIngreso}`);
+                return dB - dA;
+            });
+
+            return completed[0].kmLlegada;
+        }
+
+        function saveSalida() {
+            const vehId = document.getElementById('sVehiculo').value;
+            const destino = document.getElementById('sDestino').value.trim();
+            const motivo = document.getElementById('sMotivo').value.trim();
+            const kmSalida = parseFloat(document.getElementById('sKmSalida').value);
+            const fechaSalida = document.getElementById('sFecha').value;
+            const horaSalida = document.getElementById('sHora').value;
+            const obsSalida = document.getElementById('sObs').value.trim();
+            const conductor = document.getElementById('sConductor').value;
+
+            if (!conductor || !vehId || !destino || !motivo || isNaN(kmSalida) || !fechaSalida || !horaSalida) {
+                showToast("Formulario incompleto", "Completa todos los datos requeridos.", "warning");
+                return;
+            }
+
+            const veh = appState.vehicles.find(v => v.id === vehId);
+            const pasajeros = getSelectedPassengers();
+
+            const newRecord = {
+                id: 'rec_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                vehiculoId: vehId,
+                vehiculoPlaca: veh.placa,
+                conductor,
+                destino,
+                motivo,
+                pasajeros,
+                fechaSalida,
+                horaSalida,
+                kmSalida,
+                fechaIngreso: "",
+                horaIngreso: "",
+                kmLlegada: "",
+                kmRecorridos: "",
+                estado: "En ruta",
+                obsSalida,
+                obsIngreso: ""
+            };
+
+            APN.enviar('vehicular', newRecord);   // se guarda en el celular y se sube solo
+            sincronizar();
+            renderAllData();
+            closeModal('modalSalida');
+            showToast("Salida Procesada", `Unidad ${veh.placa} despachada hacia ${destino}.`, "success");
+        }
+
+
+        function openModalIngreso(recordId) {
+            const rec = appState.records.find(r => r.id === recordId);
+            if (!rec) return;
+
+            document.getElementById('iRecordId').value = recordId;
+            document.getElementById('iKmSalidaReferencia').value = rec.kmSalida;
+            document.getElementById('iVehiculoTxt').textContent = rec.vehiculoPlaca;
+            document.getElementById('iKmSalidaTxt').textContent = `${formatNumber(rec.kmSalida)} km`;
+
+            document.getElementById('iKmLlegada').value = '';
+            document.getElementById('iKmRecorridosDisplay').textContent = '0 km';
+            document.getElementById('iKmRecorridosDisplay').style.color = 'var(--color-text-muted)';
+
+            // La fecha y hora de ingreso quedan vacías hasta que el usuario
+            // presione "Usar fecha y hora actual" o las escriba manualmente.
+            document.getElementById('iFecha').value = '';
+            document.getElementById('iHora').value = '';
+
+            // Por defecto se asume que retornan los mismos acompañantes que
+            // salieron; el usuario puede desmarcar a quien se quedó o marcar
+            // a alguien nuevo que se sube en el trayecto de vuelta.
+            buildIngresoPassengerGrid(rec.pasajeros || []);
+
+            openModal('modalIngreso');
+        }
+
+        function buildIngresoPassengerGrid(preSeleccionados) {
+            const grid = document.getElementById('iPasajerosSelectionGrid');
+            grid.innerHTML = '';
+            const preSet = new Set(preSeleccionados || []);
+
+            if (appState.passengers.length === 0) {
+                grid.innerHTML = `<span style="font-size:0.8rem; color:var(--color-text-muted);">Registra pasajeros en el menú "Gestión de Datos".</span>`;
+                return;
+            }
+
+            appState.passengers.forEach((p, idx) => {
+                const div = document.createElement('div');
+                div.className = 'passenger-item' + (preSet.has(p) ? ' selected' : '');
+                div.setAttribute('data-name', p);
+                div.innerHTML = `
+                    <input type="checkbox" id="chk_ipas_${idx}" value="${p}" ${preSet.has(p) ? 'checked' : ''} onchange="togglePassengerVisual(this)">
+                    <span class="passenger-item-name">${p}</span>
+                `;
+                div.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        const checkbox = div.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        togglePassengerVisual(checkbox);
+                    }
+                });
+                grid.appendChild(div);
+            });
+        }
+
+        function getSelectedIngresoPassengers() {
+            const selected = [];
+            document.querySelectorAll('#iPasajerosSelectionGrid input[type="checkbox"]').forEach(cb => {
+                if (cb.checked) selected.push(cb.value);
+            });
+            return selected;
+        }
+
+        function calcularDiferenciaKm() {
+            const sKm = parseFloat(document.getElementById('iKmSalidaReferencia').value);
+            const lKm = parseFloat(document.getElementById('iKmLlegada').value);
+            const disp = document.getElementById('iKmRecorridosDisplay');
+
+            if (isNaN(lKm)) {
+                disp.textContent = '0 km';
+                disp.style.color = 'var(--color-text-muted)';
+                return;
+            }
+
+            const diff = lKm - sKm;
+            if (diff < 0) {
+                disp.textContent = "¡Menor a Salida!";
+                disp.style.color = "var(--color-danger)";
+            } else {
+                disp.textContent = `${formatNumber(diff)} km`;
+                disp.style.color = "var(--color-success)";
+            }
+        }
+
+        function saveIngreso() {
+            const id = document.getElementById('iRecordId').value;
+            const sKm = parseFloat(document.getElementById('iKmSalidaReferencia').value);
+            const lKm = parseFloat(document.getElementById('iKmLlegada').value);
+            const fechaIngreso = document.getElementById('iFecha').value;
+            const horaIngreso = document.getElementById('iHora').value;
+            const obsIngreso = document.getElementById('iObs').value.trim();
+
+            if (isNaN(lKm) || !fechaIngreso || !horaIngreso) {
+                showToast("Incompleto", "Ingresa kilometraje, fecha y hora de llegada.", "warning");
+                return;
+            }
+
+            if (lKm < sKm) {
+                showToast("Fallo en Kilometraje", "El kilometraje de entrada no puede ser inferior al registrado en la salida.", "danger");
+                return;
+            }
+
+            const idx = appState.records.findIndex(r => r.id === id);
+            if (idx === -1) return;
+
+            const pasajerosRetorno = getSelectedIngresoPassengers();
+
+            const updated = {
+                ...appState.records[idx],
+                fechaIngreso,
+                horaIngreso,
+                kmLlegada: lKm,
+                kmRecorridos: lKm - sKm,
+                estado: "Disponible",
+                obsIngreso,
+                pasajerosRetorno
+            };
+
+            APN.enviar('vehicular', updated);   // mismo id: actualiza el viaje, no lo duplica
+            sincronizar();
+            renderAllData();
+            closeModal('modalIngreso');
+            showToast("Vehículo en Base", `Se completó la recepción de la unidad.`, "success");
+        }
+
+        
+        
+
+        
+        
+        
+        
+
+        function filterData() {
+            const query = document.getElementById('searchGeneral').value.toLowerCase();
+            const dateStart = document.getElementById('filterFechaInicio').value;
+            const dateEnd = document.getElementById('filterFechaFin').value;
+
+            const filtered = appState.records.filter(record => {
+                const pasajerosTxt = record.pasajeros ? record.pasajeros.join(', ').toLowerCase() : '';
+                const matchText = 
+                    record.vehiculoPlaca.toLowerCase().includes(query) ||
+                    record.conductor.toLowerCase().includes(query) ||
+                    record.destino.toLowerCase().includes(query) ||
+                    (record.motivo && record.motivo.toLowerCase().includes(query)) ||
+                    pasajerosTxt.includes(query);
+
+                let matchDate = true;
+                const dateSalida = record.fechaSalida;
+
+                if (dateStart && dateSalida < dateStart) matchDate = false;
+                if (dateEnd && dateSalida > dateEnd) matchDate = false;
+
+                return matchText && matchDate;
+            });
+
+            renderTableHistorial(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('searchGeneral').value = '';
+            document.getElementById('filterFechaInicio').value = '';
+            document.getElementById('filterFechaFin').value = '';
+            renderTableHistorial();
+        }
+
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('es-MX').format(num);
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const parts = dateString.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                
+                const modalBody = modal.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.scrollTop = 0;
+                    modalBody.scrollLeft = 0;
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                
+                const modalBody = modal.querySelector('.modal-body');
+                if (modalBody) {
+                    modalBody.scrollTop = 0;
+                    modalBody.scrollLeft = 0;
+                }
+            }
+            if (modalId === 'modalSalida') {
+                document.getElementById('formSalida').reset();
+                document.getElementById('kmAlerta').style.display = 'none';
+            }
+            if (modalId === 'modalIngreso') {
+                document.getElementById('formIngreso').reset();
+            }
+        }
+
+        function setDateTimeNow(dateId, timeId) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            document.getElementById(dateId).value = `${year}-${month}-${day}`;
+            document.getElementById(timeId).value = `${hours}:${minutes}`;
+        }
+
+        function showToast(title, message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let toastClass = 'toast-success';
+            if (type === 'danger') toastClass = 'toast-danger';
+            if (type === 'warning') toastClass = 'toast-warning';
+
+            toast.className = `toast ${toastClass}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-msg">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 50);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => { toast.remove(); }, 300);
+            }, 4000);
+        }
+    </script>
+    <script>if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) { navigator.serviceWorker.register('sw.js').catch(function () {}); }</script>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal - Sistemas de Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================================================
+           IMAGEN DE FONDO: pon el link en la constante FONDO_URL (script final)
+           o toca el botón "Fondo" del menú.
+           ========================================================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #0f172a;
+            background-image: var(--fondo-img, radial-gradient(1200px 700px at 15% 10%, #3b82f6 0%, transparent 60%), radial-gradient(1000px 700px at 90% 20%, #a855f7 0%, transparent 55%), radial-gradient(900px 700px at 50% 100%, #10b981 0%, transparent 55%), linear-gradient(160deg, #0f172a, #1e293b));
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        /* Capa oscura sobre la imagen para dar contraste al texto y al cristal */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(160deg, rgba(10, 14, 30, 0.55) 0%, rgba(10, 14, 30, 0.75) 100%);
+            z-index: 0;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 1.1rem 1.1rem 1rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* ==========================================================================
+           HEADER
+           ========================================================================== */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.1rem;
+        }
+
+        .top-bar-title {
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            opacity: 0.85;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Botón/indicador de sesión (equivalente al ícono de perfil de la referencia) */
+        .session-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 9999px;
+            padding: 0.5rem 0.5rem 0.5rem 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .session-pill:hover { background: rgba(255, 255, 255, 0.18); }
+
+        .session-pill span.label {
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .session-icon-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+        }
+
+        .session-icon-circle.active { background: #10b981; }
+
+        /* ==========================================================================
+           TÍTULO PRINCIPAL
+           ========================================================================== */
+        .hero-text {
+            margin-bottom: 1.1rem;
+        }
+
+        .hero-text h1 {
+            color: #ffffff;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+        }
+
+        .hero-text p {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.82rem;
+        }
+
+        /* ==========================================================================
+           TARJETAS DE CRISTAL (GLASSMORPHISM)
+           ========================================================================== */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.7rem;
+        }
+
+        @media (max-width: 340px) {
+            .menu-grid { grid-template-columns: 1fr; }
+        }
+
+        .glass-card {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.85rem;
+            border-radius: 1rem;
+            background: rgba(255, 255, 255, 0.10);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+            text-decoration: none;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease, box-shadow 0.25s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .glass-card::after {
+            content: "";
+            position: absolute;
+            top: -60%;
+            left: -20%;
+            width: 60%;
+            height: 220%;
+            background: linear-gradient(120deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%);
+            transform: rotate(15deg);
+            pointer-events: none;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px) scale(1.015);
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        .glass-card:active { transform: translateY(-1px) scale(0.99); }
+
+        .glass-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+        }
+
+        .glass-icon svg { width: 20px; height: 20px; }
+
+        .glass-icon.icon-vehiculos { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .glass-icon.icon-personal { background: linear-gradient(135deg, #10b981, #047857); }
+        .glass-icon.icon-visitas { background: linear-gradient(135deg, #f59e0b, #b45309); }
+        .glass-icon.icon-ocurrencias { background: linear-gradient(135deg, #a855f7, #6d28d9); }
+
+        .glass-card.disabled {
+            cursor: default;
+            opacity: 0.85;
+        }
+
+        .glass-card.disabled:hover {
+            transform: none;
+            background: rgba(255, 255, 255, 0.10);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+        }
+
+        .glass-card.disabled .glass-icon { filter: grayscale(0.35); opacity: 0.8; }
+
+        .coming-soon-badge {
+            position: absolute;
+            top: 0.55rem;
+            right: 0.6rem;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            font-size: 0.56rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            padding: 0.15rem 0.4rem;
+            border-radius: 9999px;
+        }
+
+        .glass-card-text {
+            min-width: 0;
+        }
+
+        .glass-card-text h3 {
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 0.15rem;
+            line-height: 1.2;
+        }
+
+        .glass-card-text p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.68rem;
+            line-height: 1.3;
+        }
+
+        .footer-note {
+            margin-top: auto;
+            padding-top: 0.9rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.68rem;
+        }
+
+        /* ==========================================================================
+           MODAL DE LOGIN
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(10, 14, 30, 0.65);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-box {
+            width: 100%;
+            max-width: 380px;
+            border-radius: 1.25rem;
+            background: rgba(30, 41, 59, 0.55);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            padding: 1.75rem;
+            transform: scale(0.95);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-box { transform: scale(1); }
+
+        .modal-box h3 {
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .modal-box p {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.82rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.4;
+        }
+
+        .form-group { margin-bottom: 0.9rem; }
+
+        .form-group label {
+            display: block;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            border-radius: 0.6rem;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.08);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-control::placeholder { color: rgba(255,255,255,0.4); }
+        .form-control:focus { border-color: #3b82f6; background: rgba(255,255,255,0.14); }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.4rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.7rem 1rem;
+            border-radius: 0.6rem;
+            border: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel { background: rgba(255,255,255,0.1); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-cancel:hover { background: rgba(255,255,255,0.18); }
+        .btn-confirm { background: #3b82f6; color: #ffffff; }
+        .btn-confirm:hover { background: #2563eb; }
+
+        /* ==========================================================================
+           TOAST
+           ========================================================================== */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 320px;
+            width: 100%;
+        }
+
+        .toast {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(14px);
+            border-radius: 0.6rem;
+            padding: 0.9rem 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #ffffff;
+            transform: translateX(120%);
+            transition: transform 0.25s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            font-size: 0.85rem;
+        }
+
+        .toast.show { transform: translateX(0); }
+        .toast-success { border-left: 4px solid #10b981; }
+        .toast-danger { border-left: 4px solid #ef4444; }
+        .toast-warning { border-left: 4px solid #f59e0b; }
+        @media (max-height: 640px) {
+            .top-bar { margin-bottom: 0.75rem; }
+            .hero-text { margin-bottom: 0.75rem; }
+            .hero-text h1 { font-size: 1.2rem; }
+            .glass-card { padding: 0.65rem; }
+            .glass-icon { width: 34px; height: 34px; }
+            .footer-note { padding-top: 0.5rem; font-size: 0.6rem; }
+        }
+
+        /* ==========================================================================
+           MODO HORIZONTAL (LANDSCAPE): pantalla ancha y baja.
+           Las 4 tarjetas se mantienen en cuadrícula 2x2, con tamaños más
+           grandes para que el contenido llene el alto de la pantalla
+           (menos espacios vacíos arriba y abajo).
+           ========================================================================== */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .app-container {
+                padding: 1.4rem 2.2rem;
+                max-width: 100%;
+                justify-content: center;
+            }
+
+            .top-bar { margin-bottom: 1.1rem; }
+
+            .top-bar-title { font-size: 0.95rem; }
+
+            .session-icon-circle { width: 34px; height: 34px; }
+            .session-icon-circle svg { width: 18px; height: 18px; }
+            .session-pill { padding: 0.4rem 0.4rem 0.4rem 0.8rem; }
+            .session-pill span.label { font-size: 0.85rem; }
+
+            .hero-text { margin-bottom: 1.1rem; }
+            .hero-text h1 { font-size: 1.55rem; margin-bottom: 0.25rem; }
+            .hero-text p { font-size: 0.88rem; }
+
+            .menu-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                max-width: 780px;
+                margin: 0 auto;
+                width: 100%;
+            }
+
+            .glass-card {
+                flex-direction: row;
+                align-items: center;
+                padding: 1.05rem 1.3rem;
+                gap: 1rem;
+                border-radius: 1rem;
+            }
+
+            .glass-icon { width: 50px; height: 50px; border-radius: 0.9rem; }
+            .glass-icon svg { width: 24px; height: 24px; }
+
+            .glass-card-text h3 { font-size: 1.02rem; margin-bottom: 0.2rem; }
+            .glass-card-text p { font-size: 0.8rem; line-height: 1.3; }
+
+            .coming-soon-badge {
+                top: 0.55rem;
+                right: 0.6rem;
+                font-size: 0.58rem;
+                padding: 0.15rem 0.45rem;
+            }
+
+            .footer-note { margin-top: 0; padding-top: 1rem; font-size: 0.8rem; }
+        }
+
+        /* Pantallas horizontales extremadamente bajas (celulares pequeños en landscape) */
+        @media (orientation: landscape) and (max-height: 320px) {
+            .hero-text p { display: none; }
+            .glass-card-text p { display: none; }
+            .footer-note { display: none; }
+        }
+    </style>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <style id="apn-fix-movil">
+        /* Quita el recuadro azul (marca de agua) que Android dibuja al tocar */
+        * { -webkit-tap-highlight-color: transparent; }
+        a, button, [onclick], .glass-card, .nav-tab, .subtab-btn, .btn { outline: none; }
+        a:focus-visible, button:focus-visible, .glass-card:focus-visible { outline: 3px solid rgba(10,132,255,.55); outline-offset: 2px; }
+        /* Botones Imagen y PDF del visor semanal: al centro del contenedor */
+        .visor-toolbar { align-items: center !important; }
+        .visor-descarga-btns { justify-content: center !important; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <div class="top-bar">
+            <div class="top-bar-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0H5a2 2 0 0 1-2-2v-4m6 6h10a2 2 0 0 0 2-2v-4"/></svg>
+                Menú Principal
+            </div>
+
+            <div style="display:flex; gap:.5rem; align-items:center;">
+            <div class="session-pill" onclick="cambiarFondo()" title="Cambiar imagen de fondo por link" style="padding:.5rem .9rem;">
+                <span class="label">🖼 Fondo</span>
+            </div>
+            <div class="session-pill" id="sessionPill" onclick="onClickSessionPill()">
+                <div class="session-icon-circle" id="sessionIcon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+                </div>
+                <span class="label" id="sessionLabel">Iniciar sesión</span>
+            </div>
+            </div>
+        </div>
+
+        <div class="hero-text">
+            <h1>¿Qué deseas gestionar hoy?</h1>
+            <p>Selecciona un sistema de control para continuar.</p>
+        </div>
+
+        <div class="menu-grid">
+            <a class="glass-card" href="control_vehicular.html">
+                <div class="glass-icon icon-vehiculos">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M13 17H9"/><path d="M13 11V7"/></svg>
+                </div>
+                <div class="glass-card-text">
+                    <h3>Registro de Vehículos</h3>
+                    <p>Control de ingreso, salida y kilometraje de la flota.</p>
+                </div>
+            </a>
+
+            <a class="glass-card" href="control_personal.html">
+                <div class="glass-icon icon-personal">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="glass-card-text">
+                    <h3>Registro de Personal</h3>
+                    <p>Control de ingreso y salida de trabajadores por día.</p>
+                </div>
+            </a>
+
+            <a class="glass-card" href="control_visitas.html">
+                <div class="glass-icon icon-visitas">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M12 12l2 2 4-4" stroke="none" fill="none"/></svg>
+                </div>
+                <div class="glass-card-text">
+                    <h3>Registro de Visitas</h3>
+                    <p>Control de ingreso y salida de visitantes externos.</p>
+                </div>
+            </a>
+
+            <div class="glass-card disabled" onclick="tarjetaProximamente('Ocurrencias PRC')">
+                <span class="coming-soon-badge">Próximamente</span>
+                <div class="glass-icon icon-ocurrencias">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                </div>
+                <div class="glass-card-text">
+                    <h3>Ocurrencias PRC</h3>
+                    <p>Registro de incidencias y novedades del PRC.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note" id="footerNote">Inicia sesión con tu usuario de agente para registrar y corregir tus registros.</div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="apn-config.js"></script>
+    <script src="apn-core.js"></script>
+    <script>
+        // =======================================================
+        // IMAGEN DE FONDO POR LINK (se comparte con los otros 2 HTML)
+        // =======================================================
+        const FONDO_URL = "";
+        function aplicarFondo() {
+            let u = "";
+            try { u = localStorage.getItem('apn_fondo_url') || ""; } catch (e) {}
+            u = u || FONDO_URL;
+            if (u) document.documentElement.style.setProperty('--fondo-img', 'url("' + u.replace(/"/g, '%22') + '")');
+            else document.documentElement.style.removeProperty('--fondo-img');
+        }
+        function cambiarFondo() {
+            const actual = localStorage.getItem('apn_fondo_url') || "";
+            const nuevo = prompt('Pega el link directo de la imagen de fondo (déjalo vacío para quitarla):', actual);
+            if (nuevo === null) return;
+            if (nuevo.trim()) localStorage.setItem('apn_fondo_url', nuevo.trim());
+            else localStorage.removeItem('apn_fondo_url');
+            aplicarFondo();
+            showToast("Fondo actualizado", nuevo.trim() ? "Se aplicará también en Vehículos y Personal." : "Fondo restablecido.", "success");
+        }
+        aplicarFondo();
+
+        // =======================================================
+        // SESIÓN: la misma de los sistemas de registro (apn-core.js).
+        // El usuario y contraseña son los del agente creados en el dashboard.
+        // =======================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            APN.init({ api: (window.APN_CONFIG && APN_CONFIG.API_URL) || '', turno: false, autoLogin: false, toast: showToast });
+            APN.on('sesion', actualizarUISesion);
+            actualizarUISesion();
+        });
+
+        function actualizarUISesion() {
+            const icon = document.getElementById('sessionIcon');
+            const label = document.getElementById('sessionLabel');
+            const footer = document.getElementById('footerNote');
+            const u = APN.usuario();
+            if (u) {
+                icon.classList.add('active');
+                label.textContent = u.nombre.split(' ')[0] + ' · Opciones';
+                footer.textContent = 'Sesión activa como ' + u.nombre + ' — en cada sistema puedes corregir o eliminar lo que tú registraste.';
+            } else {
+                icon.classList.remove('active');
+                label.textContent = 'Iniciar sesión';
+                footer.textContent = 'Inicia sesión con tu usuario de agente para registrar y corregir tus registros.';
+            }
+        }
+
+        function onClickSessionPill() {
+            if (APN.usuario()) APN.menu(); else APN.login();
+        }
+
+        function tarjetaProximamente(nombre) {
+            showToast("Aún no disponible", `El módulo de ${nombre} estará disponible próximamente.`, "warning");
+        }
+
+        function showToast(title, message, type) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<strong>${title}</strong><br><span style="opacity:0.85;">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 50);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+    <script>if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) { navigator.serviceWorker.register('sw.js').catch(function () {}); }</script>
+</body>
+</html>
