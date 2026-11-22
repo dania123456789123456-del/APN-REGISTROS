@@ -46,7 +46,7 @@
     /* tablas con rejilla */
     '.apn-t{border-collapse:collapse;table-layout:fixed;width:100%;border:3px solid ' + ROJO + '}',
     '.apn-t th{background:' + ROSA + ';border:2px solid ' + ROJO + ';font-family:"Bitter",Georgia,serif;font-weight:700;font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;padding:0 3px;height:30px;color:#111;text-align:center}',
-    '.apn-t td{border:2px solid ' + ROSA + ';padding:2px 5px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.3;word-break:break-word}',
+    '.apn-t td{border:2px solid ' + ROSA + ';padding:2px 5px;text-align:center;vertical-align:middle;font-size:12px;line-height:1.3;white-space:normal;overflow-wrap:anywhere;word-break:break-word}',
     '.apn-t td.n{font-size:12px}',
     /* tablas de personal y visitas: filas en cuadrícula con alto por contenido (se exportan bien a imagen y PDF) */
     '.apn-g{border:3px solid ' + ROJO + ';background:#fff}',
