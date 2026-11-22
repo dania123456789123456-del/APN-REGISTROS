@@ -755,7 +755,9 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
         .oc-fecha-row .btn { padding: .5rem .8rem; }
         .oc-check { justify-content: flex-end; }
         .oc-check-label { display: flex; align-items: center; gap: .55rem; font-weight: 600; cursor: pointer; font-size: .95rem; }
-        .oc-check-label input { width: 1.15rem; height: 1.15rem; accent-color: #0a84ff; }
+        .oc-check-label input { width: 1.15rem; height: 1.15rem; flex: 0 0 1.15rem; margin: .15rem 0 0; accent-color: #0a84ff; }
+        .oc-check-label { align-items: flex-start; line-height: 1.35; }
+        .oc-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1rem; margin-bottom: 1.25rem; padding: 0 .1rem; }
         .oc-aviso { margin-top: 1rem; padding: .7rem 1rem; border-radius: .9rem; background: #fef3c7; color: #92400e; font-size: .88rem; font-weight: 600; }
         .oc-hojas { font-weight: 700; color: var(--color-primary); font-size: .9rem; }
         .oc-nota { color: var(--color-text-muted); font-size: .85rem; margin: .25rem 0 1rem; line-height: 1.5; }
@@ -851,13 +853,13 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
                     <label class="oc-check-label"><input type="checkbox" id="ctlLimpieza" onchange="guardarOpciones()"> Activar hora del personal de limpieza</label>
                 </div>
             </div>
-            <p id="avisoRol" class="oc-aviso" style="display:none">Tu usuario no es administrador: puedes ver y descargar el cuaderno, pero guardar cambios solo lo puede hacer el administrador.</p>
+            <p id="avisoRol" class="oc-aviso" style="display:none">Tu usuario no tiene permiso para guardar cambios en el cuaderno: puedes ver y descargar.</p>
         </div>
 
         <!-- ===================== PESTAÑA: CUADERNO ===================== -->
         <div class="app-screen active" id="screen-cuaderno">
             <div class="content-panel">
-                <div class="visor-toolbar">
+                <div class="oc-toolbar">
                     <label class="oc-check-label"><input type="checkbox" id="chkLibro" onchange="renderVisor()"> Vista de cuaderno (portada y hojas que se pasan)</label>
                     <span id="numHojas" class="oc-hojas"></span>
                 </div>
@@ -942,7 +944,7 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
             if (r.status === 'auth') { APN.login('Tu sesión venció. Vuelve a ingresar.'); throw new Error('auth'); }
             return r;
         }
-        const esAdmin = () => ((APN.usuario() || {}).rol === 'admin');
+        const esAdmin = () => ['admin', 'agente'].indexOf((APN.usuario() || {}).rol) !== -1;   // quien puede corregir el cuaderno
 
         // ------------------------------------------------------------ arranque
         document.addEventListener('DOMContentLoaded', () => {
@@ -1116,7 +1118,7 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
         }
         async function guardarCambios(opts) {
             if (!S.q) return;
-            if (!esAdmin()) { showToast('Solo administrador', 'Guardar cambios requiere una cuenta de administrador.', 'warning'); return; }
+            if (!esAdmin()) { showToast('Sin permiso', 'Tu usuario no puede guardar cambios en el cuaderno.', 'warning'); return; }
             const ed = armarEdiciones();
             if (opts && opts.sinOcultas) ed.ocultas = [];
             const btn = $('btnGuardar'); btn.disabled = true; btn.textContent = 'Guardando…';
@@ -1130,7 +1132,7 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
         function mostrarOcultas() { if (confirm('¿Volver a mostrar todas las filas que quitaste en este cuaderno?')) guardarCambios({ sinOcultas: true }); }
         async function guardarOpciones() {
             if (!S.q) return;
-            if (!esAdmin()) { showToast('Solo administrador', 'Cambiar estas opciones requiere una cuenta de administrador.', 'warning'); $('ctlRonda').value = S.q.supervisionHora || ''; $('ctlLimpieza').checked = !!S.q.limpiezaActiva; return; }
+            if (!esAdmin()) { showToast('Sin permiso', 'Tu usuario no puede cambiar estas opciones.', 'warning'); $('ctlRonda').value = S.q.supervisionHora || ''; $('ctlLimpieza').checked = !!S.q.limpiezaActiva; return; }
             try {
                 const r = await api('saveCuaderno', { fecha: S.fecha, turno: S.turno, limpiezaActiva: $('ctlLimpieza').checked, supervisionHora: $('ctlRonda').value });
                 if (r.status === 'success') { showToast('Guardado', 'Opciones del turno actualizadas.', 'success'); const sucio = S.sucio; await actualizarTodo(true); S.sucio = sucio; }
