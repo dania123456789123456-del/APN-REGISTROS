@@ -2,8 +2,8 @@
    - Archivos de esta misma página: primero la red (siempre lo más nuevo); si no hay Internet, la copia guardada.
    - Librerías externas (html2canvas, jsPDF, fuentes): primero la copia guardada.
    - El Apps Script (datos) NUNCA se guarda aquí: la cola sin conexión de apn-core.js se encarga. */
-const VERSION = 'apn-v6';
-const BASE = ['./', 'index.html', 'control_personal.html', 'control_vehicular.html', 'control_visitas.html',
+const VERSION = 'apn-v7';
+const BASE = ['./', 'index.html', 'control_personal.html', 'control_vehicular.html', 'control_visitas.html', 'control_ocurrencias.html',
   'apn-config.js', 'apn-core.js', 'apn-reportes.js', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
