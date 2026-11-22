@@ -846,6 +846,10 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
                     </select>
                 </div>
                 <div class="form-group">
+                    <label for="ctlAgente">Agente del turno</label>
+                    <select id="ctlAgente" class="form-control" onchange="guardarAgente()"></select>
+                </div>
+                <div class="form-group">
                     <label for="ctlRonda">Hora de ronda y supervisión</label>
                     <input type="time" id="ctlRonda" class="form-control" onchange="guardarOpciones()">
                 </div>
@@ -956,7 +960,7 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
             $('ctlFecha').value = S.fecha; $('ctlTurno').value = S.turno;
             $('chkLibro').checked = window.innerWidth >= 1000;   // en celular se ve una hoja a la vez (más legible)
             const hoy = S.fecha; $('rgDesde').value = sumar(hoy, -6); $('rgHasta').value = hoy;
-            APN.init({ api: API_URL, modulo: 'ocurrencias', turno: false, toast: showToast, onListo: arrancarPagina });
+            APN.init({ api: API_URL, modulo: 'ocurrencias', turno: false, toast: showToast, onListo: arrancarPagina, onDatos: function () { pintarAgentes(); } });
             const cont = $('libroCont');
             cont.addEventListener('apnrender', () => { ajustarVisor(); saltarAFecha(); });   // al cargar las fuentes se redibuja
             window.addEventListener('resize', ajustarVisor);
@@ -964,7 +968,7 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
         function arrancarPagina() {
             const admin = esAdmin();
             $('avisoRol').style.display = admin ? 'none' : 'block';
-            ['ctlRonda', 'ctlLimpieza', 'btnGuardar', 'btnAgregar', 'btnOcultas'].forEach(id => { $(id).disabled = !admin; });
+            ['ctlAgente', 'ctlRonda', 'ctlLimpieza', 'btnGuardar', 'btnAgregar', 'btnOcultas'].forEach(id => { $(id).disabled = !admin; });
             if (!S.listo) { S.listo = true; actualizarTodo(false); }
         }
 
@@ -992,11 +996,35 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
             if (!ok && !S.cuadernos.length) return;
             S.q = S.cuadernos.find(c => c.fecha === S.fecha && c.turno === S.turno) || null;
             S.sucio = false;
+            pintarAgentes();
             if (S.q) {
                 $('ctlRonda').value = S.q.supervisionHora || '';
                 $('ctlLimpieza').checked = !!S.q.limpiezaActiva;
             }
             renderVisor(); armarFilas(); renderEditor();
+        }
+
+        // ------------------------------------------------------------ agente del turno
+        function pintarAgentes() {
+            const sel = $('ctlAgente');
+            if (document.activeElement === sel) return;   // no cambiar la lista mientras la está usando
+            const actual = (S.q && S.q.actual && S.q.actual.nombre) || '';
+            const lista = (APN.personas(['agente', 'admin']) || []).slice().sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+            let html = actual ? '' : '<option value="" selected disabled>— Sin agente registrado —</option>';
+            html += lista.map(p => '<option value="' + esc(p.id) + '"' + (p.nombre === actual ? ' selected' : '') + '>' + esc(p.nombre) + '</option>').join('');
+            if (actual && !lista.some(p => p.nombre === actual)) html = '<option value="" selected disabled>' + esc(actual) + '</option>' + html;
+            sel.innerHTML = html;
+            sel.disabled = !esAdmin() || !S.q;
+        }
+        async function guardarAgente() {
+            if (!S.q) return;
+            const id = $('ctlAgente').value; if (!id) return;
+            if (!esAdmin()) { showToast('Sin permiso', 'Tu usuario no puede asignar agentes.', 'warning'); pintarAgentes(); return; }
+            try {
+                const r = await api('iniciarServicio', { fecha: S.fecha, turno: S.turno, agenteId: id, hora: S.turno === 'noche' ? '19:00' : '07:00' });
+                if (r.status === 'success') { showToast('Guardado', 'Agente del turno actualizado.', 'success'); const sucio = S.sucio; await actualizarTodo(true); S.sucio = sucio; }
+                else { showToast('No se pudo guardar', esc(r.message || ''), 'danger'); pintarAgentes(); }
+            } catch (e) { if (e.message !== 'auth') { showToast('Sin conexión', 'No se pudo guardar. Revisa tu Internet.', 'danger'); pintarAgentes(); } }
         }
 
         // ------------------------------------------------------------ fecha y turno
