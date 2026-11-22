@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocurrencias PRC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --color-primary: #1e40af;
+            --color-primary-hover: #1d4ed8;
+            --color-secondary: #3b82f6;
+            --color-bg-light: #f8fafc;
+            --color-card-bg: #ffffff;
+            --color-text-main: #1e293b;
+            --color-text-muted: #64748b;
+            --color-border: #e2e8f0;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-warning-light: #fef3c7;
+            --color-warning-border: #f59e0b;
+            --color-danger: #ef4444;
+            --font-family: 'Inter', sans-serif;
+            --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--color-bg-light);
+            color: var(--color-text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .dashboard-container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 1.5rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-title p { color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
+
+        .status-badge-cloud {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            gap: 0.5rem;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-sm);
+            cursor: default;
+        }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--color-danger); display: inline-block; }
+        .status-dot.connected { background-color: var(--color-success); }
+
+        .navigation-tabs {
+            display: flex;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 0.4rem;
+            margin-bottom: 2rem;
+            gap: 0.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-tab {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            background: none;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .nav-tab:hover { color: var(--color-primary); background-color: #eff6ff; }
+        .nav-tab.active { color: white; background-color: var(--color-primary); }
+
+        .app-screen { display: none; }
+        .app-screen.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--color-card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: var(--transition-smooth);
+        }
+
+        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+        .stat-info h3 {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-info .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--color-text-main); }
+
+        .stat-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-blue { background-color: #eff6ff; color: var(--color-secondary); }
+        .icon-green { background-color: #ecfdf5; color: var(--color-success); }
+        .icon-red { background-color: #fef2f2; color: var(--color-danger); }
+
+        .content-panel {
+            background-color: var(--color-card-bg);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--color-border);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .panel-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            text-decoration: none;
+        }
+
+        .btn-primary { background-color: var(--color-primary); color: white; }
+        .btn-primary:hover { background-color: var(--color-primary-hover); }
+        .btn-secondary { background-color: var(--color-card-bg); color: var(--color-text-main); border: 1px solid var(--color-border); }
+        .btn-secondary:hover { background-color: var(--color-bg-light); }
+        .btn-danger { background-color: var(--color-danger); color: white; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-warning { background-color: var(--color-warning-light); color: #92400e; border: 1px solid var(--color-warning-border); }
+        .btn-warning:hover { background-color: #fde68a; }
+
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted); }
+
+        .form-control {
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--color-border);
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            outline: none;
+            background-color: #ffffff;
+            transition: var(--transition-smooth);
+            width: 100%;
+        }
+
+        .form-control:focus { border-color: var(--color-secondary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+
+        .tipo-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+        .tipo-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.9rem;
+            border-radius: 0.5rem;
+            border: 2px solid var(--color-border);
+            background-color: #ffffff;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: var(--transition-smooth);
+            user-select: none;
+        }
+
+        .tipo-option .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .tipo-ingreso .dot { background-color: var(--color-success); }
+        .tipo-salida .dot { background-color: var(--color-danger); }
+        .tipo-ingreso.selected { border-color: var(--color-success); background-color: #ecfdf5; color: #065f46; }
+        .tipo-salida.selected { border-color: var(--color-danger); background-color: #fef2f2; color: #991b1b; }
+
+        .salida-extra-box {
+            display: none;
+            background-color: #fef2f2;
+            border: 1px dashed var(--color-danger);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .salida-extra-box.visible { display: block; }
+
+        .salida-extra-box label { font-size: 0.85rem; font-weight: 600; color: #991b1b; margin-bottom: 0.4rem; display: block; }
+
+        .data-list-scroller {
+            max-height: 280px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-right: 0.25rem;
+        }
+
+        .data-row-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--color-bg-light);
+            border: 1px solid var(--color-border);
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .data-row-title { font-weight: 600; color: var(--color-text-main); }
+
+        .btn-icon-del {
+            background: none;
+            border: none;
+            color: var(--color-danger);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-icon-del:hover { background-color: #fee2e2; }
+
+        .table-responsive { overflow-x: auto; width: 100%; border-radius: 0.5rem; border: 1px solid var(--color-border); }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+
+        th {
+            background-color: var(--color-bg-light);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            border-bottom: 1px solid var(--color-border);
+            white-space: nowrap;
+        }
+
+        td { padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); vertical-align: top; color: var(--color-text-main); }
+        tr:hover td { background-color: #f8fafc; }
+
+        .empty-row td { text-align: center; color: var(--color-text-muted); padding: 2rem; white-space: nowrap; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .badge-dentro { background-color: #ecfdf5; color: #065f46; }
+        .badge-fuera { background-color: #fef3c7; color: #92400e; }
+        .badge-finalizado { background-color: #fef2f2; color: #991b1b; }
+
+        .movimientos-container { display: flex; flex-wrap: wrap; gap: 0.4rem; max-width: 420px; }
+
+        .mov-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.4rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid var(--color-border);
+            white-space: nowrap;
+        }
+
+        .mov-ingreso { background-color: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+        .mov-salida { background-color: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .mov-chip .mov-motivo { font-weight: 400; opacity: 0.85; }
+
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+
+        /* ==========================================================================
+           VISOR SEMANAL (HISTORIAL AGRUPADO POR DÍA, DESCARGABLE)
+           ========================================================================== */
+        .historial-subtabs {
+            display: flex;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0.75rem;
+            padding: 0.35rem;
+            margin-bottom: 1.5rem;
+            gap: 0.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .subtab-btn {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            background: none;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .subtab-btn:hover { color: var(--color-primary); background-color: #eff6ff; }
+        .subtab-btn.active { color: white; background-color: var(--color-primary); }
+
+        .visor-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .visor-semana-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .visor-semana-label {
+            font-weight: 700;
+            color: var(--color-primary);
+            font-size: 0.95rem;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .visor-descarga-btns { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+        #visorSemanalContent {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+        }
+
+        .visor-day-block { margin-bottom: 2rem; }
+        .visor-day-block:last-child { margin-bottom: 0; }
+
+        .visor-day-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.02em;
+        }
+
+        table.visor-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+
+        table.visor-table th {
+            background-color: #f87171;
+            color: #7f1d1d;
+            border: 1px solid #ef4444;
+            padding: 0.6rem 0.5rem;
+            text-align: center;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        table.visor-table td {
+            border: 1px solid #fca5a5;
+            padding: 0.55rem 0.5rem;
+            text-align: center;
+            color: var(--color-text-main);
+        }
+
+        table.visor-table td.visor-nombre-cell { text-align: left; font-weight: 600; }
+
+        .visor-logo-footer { display: flex; justify-content: center; margin-top: 1.5rem; }
+        .visor-logo-footer img { max-height: 70px; }
+
+        .visor-empty-msg { text-align: center; color: var(--color-text-muted); padding: 1rem; font-size: 0.85rem; }
+
+        /* ==========================================================================
+           MODALES (LOGIN Y EDICIÓN)
+           ========================================================================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            padding: 1rem;
+        }
+
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal-box {
+            background-color: var(--color-card-bg);
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border);
+            transform: scale(0.95);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.active .modal-box { transform: scale(1); }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--color-bg-light);
+        }
+
+        .modal-header h3 { font-size: 1.15rem; font-weight: 700; color: var(--color-primary); }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            transition: var(--transition-smooth);
+        }
+
+        .modal-close:hover { color: var(--color-danger); }
+
+        .modal-body { padding: 1.5rem; overflow-y: auto; }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            background-color: var(--color-bg-light);
+        }
+
+        .btn-editar-mov {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-secondary);
+            display: none;
+            align-items: center;
+            padding: 0.1rem 0.2rem;
+            vertical-align: middle;
+        }
+
+        .btn-editar-mov:hover { color: var(--color-primary); }
+
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .toast {
+            background-color: var(--color-card-bg);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            transform: translateX(120%);
+            transition: transform 0.25s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .toast.show { transform: translateX(0); }
+        .toast-success { border-left: 4px solid var(--color-success); }
+        .toast-danger { border-left: 4px solid var(--color-danger); }
+        .toast-warning { border-left: 4px solid var(--color-warning); }
+        .toast-content { flex-grow: 1; }
+        .toast-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.15rem; }
+        .toast-msg { font-size: 0.8rem; color: var(--color-text-muted); }
+
+        @media (max-width: 768px) {
+            .dashboard-container { padding: 1rem 0.75rem; }
+            .navigation-tabs { flex-direction: column; }
+            .form-grid-2 { grid-template-columns: 1fr; }
+            .panel-header { flex-direction: column; align-items: stretch; }
+            header { flex-direction: column; align-items: flex-start; }
+            .historial-subtabs { flex-direction: column; }
+            .visor-toolbar { flex-direction: column; align-items: stretch; }
+            .visor-semana-nav { justify-content: center; }
+        }
+    </style>
+    <style id="tema-ios-glass">
+/* ==========================================================================
+   TEMA "iOS LIQUID GLASS" (estilo iPhone 17) — compartido por los 3 HTML.
+   FONDO: pon el link de tu imagen en la constante FONDO_URL (más abajo,
+   en la constante FONDO_URL del script final) o toca "Fondo" en el Menú Principal.
+   ========================================================================== */
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.58);
+    --glass-bg-strong: rgba(255, 255, 255, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.65);
+    --glass-blur: blur(26px) saturate(180%);
+    --glass-shadow: 0 10px 36px rgba(15, 23, 42, 0.22), inset 0 1px 0 rgba(255,255,255,0.85);
+    --ios-radius: 1.5rem;
+    --color-primary: #0a84ff;
+    --color-primary-hover: #0070e0;
+    --color-secondary: #0a84ff;
+    --color-text-muted: #475569;
+    --color-card-bg: rgba(255, 255, 255, 0.58);
+    --color-bg-light: rgba(255, 255, 255, 0.45);
+    --color-border: rgba(255, 255, 255, 0.6);
+    --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+}
+html { min-height: 100%; }
+body {
+    background-color: #0f172a;
+    background-image: var(--fondo-img, radial-gradient(1200px 700px at 15% 10%, #3b82f6 0%, transparent 60%), radial-gradient(1000px 700px at 90% 20%, #a855f7 0%, transparent 55%), radial-gradient(900px 700px at 50% 100%, #10b981 0%, transparent 55%), linear-gradient(160deg, #0f172a, #1e293b));
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background: linear-gradient(160deg, rgba(10,14,30,0.35) 0%, rgba(10,14,30,0.55) 100%);
+    z-index: 0; pointer-events: none;
+}
+.dashboard-container { position: relative; z-index: 1; padding-bottom: 7rem; }
+
+/* Cristal */
+header, .navigation-tabs, .stat-card, .content-panel, .list-card, .status-badge-cloud,
+.historial-subtabs, .visor-toolbar, .alert-box {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: var(--ios-radius) !important;
+}
+header { padding: 1.1rem 1.4rem !important; border-bottom: 1px solid var(--glass-border) !important; }
+.status-badge-cloud { border-radius: 9999px !important; box-shadow: 0 4px 14px rgba(15,23,42,0.15) !important; }
+.header-title h1 { color: #0b1220 !important; font-size: 1.35rem !important; letter-spacing: -0.02em; }
+.header-title p { color: #334155 !important; }
+
+.btn-volver {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .5rem .95rem; border-radius: 9999px; text-decoration: none;
+    font-weight: 600; font-size: .85rem; color: #0b1220;
+    background: var(--glass-bg-strong); border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 14px rgba(15,23,42,.15);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+
+/* Botones */
+.btn { border-radius: 9999px !important; font-weight: 600; }
+.btn-primary { background: linear-gradient(180deg, #38a0ff, #0a84ff) !important; color: #fff !important; box-shadow: 0 6px 16px rgba(10,132,255,.4); border: none !important; }
+.btn-success { background: linear-gradient(180deg, #4ade80, #22c55e) !important; box-shadow: 0 6px 16px rgba(34,197,94,.35); }
+.btn-danger { background: linear-gradient(180deg, #ff6b6b, #ef4444) !important; }
+.btn-secondary { background: var(--glass-bg-strong) !important; border: 1px solid var(--glass-border) !important; color: #0b1220 !important; }
+.btn-warning { border-radius: 9999px !important; }
+
+/* Formularios */
+.form-control, select.form-control, input.form-control, textarea.form-control {
+    background: rgba(255,255,255,0.7) !important;
+    border: 1px solid rgba(255,255,255,0.85) !important;
+    border-radius: 1rem !important;
+    color: #0b1220;
+}
+.form-control:focus { box-shadow: 0 0 0 3px rgba(10,132,255,.3) !important; border-color: #0a84ff !important; }
+.form-group label { color: #1e293b !important; }
+
+/* Pestañas */
+.navigation-tabs { padding: .4rem !important; border-radius: 9999px !important; }
+.nav-tab { border-radius: 9999px !important; color: #1e293b !important; }
+.nav-tab:hover { background: rgba(255,255,255,.55) !important; color: #0a84ff !important; }
+.nav-tab.active { background: linear-gradient(180deg, #38a0ff, #0a84ff) !important; color: #fff !important; box-shadow: 0 6px 16px rgba(10,132,255,.4); }
+.subtab-btn { border-radius: 9999px !important; }
+.subtab-btn.active { background: linear-gradient(180deg, #38a0ff, #0a84ff) !important; color: #fff !important; }
+
+/* Tablas de datos */
+.table-responsive { background: rgba(255,255,255,.35); border: 1px solid var(--glass-border) !important; border-radius: 1.1rem !important; }
+th { background: rgba(255,255,255,.55) !important; color: #0b1220 !important; }
+tr:hover td { background-color: rgba(255,255,255,.55) !important; }
+.data-row-item, .passenger-item, .tipo-option { background: rgba(255,255,255,.55) !important; border-color: var(--glass-border) !important; border-radius: 1rem !important; }
+.passenger-item.selected { background: rgba(10,132,255,.18) !important; border-color: #0a84ff !important; }
+
+/* Modales y avisos */
+.modal-overlay { background: rgba(10,14,30,.45) !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.modal-box { background: rgba(255,255,255,.82) !important; -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border) !important; border-radius: 1.75rem !important; box-shadow: 0 24px 70px rgba(0,0,0,.4) !important; }
+.toast { background: rgba(255,255,255,.88) !important; -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-radius: 1.1rem !important; }
+
+/* El visor semanal se mantiene BLANCO y legible (es lo que se descarga) */
+#visorSemanalContent { background: #ffffff !important; border-radius: 1.25rem !important; box-shadow: var(--glass-shadow); }
+
+/* Indicador de conexión / pendientes */
+.cola-pill { display:inline-flex; align-items:center; gap:.4rem; padding:.2rem .6rem; border-radius:9999px; font-size:.72rem; font-weight:700; background:#fef3c7; color:#92400e; }
+
+/* Celular: pestañas como barra inferior flotante (estilo iPhone) */
+@media (max-width: 768px) {
+    .dashboard-container { padding: 1rem .75rem 7rem !important; }
+    .navigation-tabs {
+        position: fixed !important; left: .75rem; right: .75rem; bottom: max(.75rem, env(safe-area-inset-bottom));
+        flex-direction: row !important; z-index: 900; margin: 0 !important; gap: .15rem !important;
+    }
+    .nav-tab { padding: .65rem .35rem !important; font-size: .72rem !important; flex-direction: column; gap: .15rem !important; }
+    .header-title h1 { font-size: 1.1rem !important; }
+    .stats-grid { gap: .75rem !important; }
+}
+
+    </style>
+    <script>
+        // =======================================================
+        // IMAGEN DE FONDO POR LINK
+        // Pega aquí el link directo de tu imagen, o toca el botón "Fondo"
+        // en el Menú Principal (se guarda y se aplica a los 3 archivos
+        // siempre que estén en el mismo sitio/dominio).
+        // =======================================================
+        const FONDO_URL = "";
+        (function () {
+            let u = "";
+            try { u = localStorage.getItem('apn_fondo_url') || ""; } catch (e) {}
+            u = u || FONDO_URL;
+            if (u) document.documentElement.style.setProperty('--fondo-img', 'url("' + u.replace(/"/g, '%22') + '")');
+        })();
+    </script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <style id="apn-fix-movil">
+        /* Quita el recuadro azul (marca de agua) que Android dibuja al tocar */
+        * { -webkit-tap-highlight-color: transparent; }
+        a, button, [onclick], .glass-card, .nav-tab, .subtab-btn, .btn { outline: none; }
+        a:focus-visible, button:focus-visible, .glass-card:focus-visible { outline: 3px solid rgba(10,132,255,.55); outline-offset: 2px; }
+        /* Botones Imagen y PDF del visor semanal: al centro del contenedor */
+        .visor-toolbar { align-items: center !important; }
+        .visor-descarga-btns { justify-content: center !important; width: 100%; }
+        /* Botón de editar visible junto a cada movimiento */
+        .btn-editar-mov { display: inline-flex !important; margin-left: .35rem; padding: .25rem .35rem !important; font-size: 1rem; }
+        /* Ventanas de edición: los botones del pie, iguales, completos y centrados */
+        .modal-footer { display: flex !important; flex-wrap: nowrap !important; justify-content: center !important; gap: .5rem !important; }
+        .modal-footer .btn { flex: 1 1 0 !important; min-width: 0 !important; padding: .8rem .4rem !important; font-size: .85rem !important; line-height: 1.15 !important; text-align: center !important; justify-content: center !important; white-space: normal !important; }
+    </style>
+    <style id="ocurrencias-extra">
+        .oc-fecha-row { display: flex; gap: .4rem; align-items: stretch; }
+        .oc-fecha-row .form-control { min-width: 0; flex: 1; }
+        .oc-fecha-row .btn { padding: .5rem .8rem; }
+        .oc-check { justify-content: flex-end; }
+        .oc-check-label { display: flex; align-items: center; gap: .55rem; font-weight: 600; cursor: pointer; font-size: .95rem; }
+        .oc-check-label input { width: 1.15rem; height: 1.15rem; accent-color: #0a84ff; }
+        .oc-aviso { margin-top: 1rem; padding: .7rem 1rem; border-radius: .9rem; background: #fef3c7; color: #92400e; font-size: .88rem; font-weight: 600; }
+        .oc-hojas { font-weight: 700; color: var(--color-primary); font-size: .9rem; }
+        .oc-nota { color: var(--color-text-muted); font-size: .85rem; margin: .25rem 0 1rem; line-height: 1.5; }
+        .oc-descarga { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+        .oc-descarga .form-group { min-width: 180px; flex: 1 1 200px; margin-bottom: 0; }
+        .oc-descarga .visor-descarga-btns { width: auto !important; flex: 0 0 auto; }
+        .oc-visor-panel { padding: 1rem !important; overflow: hidden; }
+        #libroEscala { width: 100%; overflow: hidden; transition: opacity .2s; }
+        #libroCont .apn-libro.cerrado { transform: translateX(-25%); }   /* portada centrada al abrir la página */
+        .oc-acciones { display: flex; gap: .6rem; flex-wrap: wrap; }
+        .oc-fila { display: grid; grid-template-columns: 140px 140px 1fr auto; gap: .6rem; align-items: start; margin-bottom: .8rem; }
+        .oc-h label { display: block; font-size: .68rem; font-weight: 700; letter-spacing: .05em; color: var(--color-text-muted); margin-bottom: .15rem; }
+        .oc-fila textarea { min-height: 62px; resize: vertical; line-height: 1.4; font-size: .95rem; margin-top: 1.05rem; }
+        .oc-fila.sistema textarea { color: #1b0fa6; }
+        .oc-fila.dato textarea { color: #e8222a; }
+        .oc-fila .oc-h .form-control { padding: .55rem .5rem; }
+        .oc-acc { display: flex; gap: .35rem; margin-top: 1.05rem; min-width: 2.4rem; }
+        .oc-ib { padding: .5rem .75rem !important; font-size: 1rem; line-height: 1; justify-content: center; }
+        .oc-del { color: #dc2626 !important; }
+        .oc-fila.borrado textarea { opacity: .4; text-decoration: line-through; }
+        .oc-fila.borrado .oc-h { opacity: .4; }
+        @media (max-width: 768px) {
+            .oc-fila { grid-template-columns: 1fr 1fr; }
+            .oc-fila textarea { grid-column: 1 / -1; margin-top: 0; }
+            .oc-acc { grid-column: 1 / -1; justify-content: flex-end; margin-top: 0; }
+            .oc-descarga .visor-descarga-btns { width: 100% !important; }
+            .oc-acciones { width: 100%; }
+            .oc-acciones .btn { flex: 1 1 auto; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+
+        <header>
+            <a class="btn-volver no-print" href="index.html">‹ Menú</a>
+            <div class="header-title">
+                <h1>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                    Ocurrencias PRC
+                </h1>
+                <p>Cuaderno de ocurrencias: visualiza, corrige y descarga</p>
+            </div>
+
+            <div class="status-badge-cloud" id="syncStatusBadge" title="">
+                <span class="status-dot" id="syncStatusDot"></span>
+                <span id="syncStatusText">Cargando modo...</span>
+            </div>
+
+            <div class="status-badge-cloud" id="sesionBadge" style="cursor: default;">
+                <span class="status-dot" id="sesionDot"></span>
+                <span id="sesionText">Sin sesión</span>
+                <button id="btnSesionAccion" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; margin-left: 0.25rem;">Iniciar sesión</button>
+            </div>
+        </header>
+
+        <nav class="navigation-tabs">
+            <button class="nav-tab active" id="tab-btn-cuaderno" onclick="switchTab('cuaderno')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Cuaderno
+            </button>
+            <button class="nav-tab" id="tab-btn-editar" onclick="switchTab('editar')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                Editar ocurrencias
+            </button>
+        </nav>
+
+        <!-- Controles comunes: fecha, turno, ronda y limpieza (valen para las dos pestañas) -->
+        <div class="content-panel">
+            <div class="filters-grid">
+                <div class="form-group">
+                    <label for="ctlFecha">Fecha</label>
+                    <div class="oc-fecha-row">
+                        <button type="button" class="btn btn-secondary" onclick="moverDia(-1)" title="Día anterior">‹</button>
+                        <input type="date" id="ctlFecha" class="form-control" onchange="cambiarFecha()">
+                        <button type="button" class="btn btn-secondary" onclick="moverDia(1)" title="Día siguiente">›</button>
+                        <button type="button" class="btn btn-secondary" onclick="irAHoy()">Hoy</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ctlTurno">Turno</label>
+                    <select id="ctlTurno" class="form-control" onchange="cambiarFecha()">
+                        <option value="dia">Día (07:00 – 19:00)</option>
+                        <option value="noche">Noche (19:00 – 07:00)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ctlRonda">Hora de ronda y supervisión</label>
+                    <input type="time" id="ctlRonda" class="form-control" onchange="guardarOpciones()">
+                </div>
+                <div class="form-group oc-check">
+                    <label class="oc-check-label"><input type="checkbox" id="ctlLimpieza" onchange="guardarOpciones()"> Activar hora del personal de limpieza</label>
+                </div>
+            </div>
+            <p id="avisoRol" class="oc-aviso" style="display:none">Tu usuario no es administrador: puedes ver y descargar el cuaderno, pero guardar cambios solo lo puede hacer el administrador.</p>
+        </div>
+
+        <!-- ===================== PESTAÑA: CUADERNO ===================== -->
+        <div class="app-screen active" id="screen-cuaderno">
+            <div class="content-panel">
+                <div class="visor-toolbar">
+                    <label class="oc-check-label"><input type="checkbox" id="chkLibro" onchange="renderVisor()"> Vista de cuaderno (portada y hojas que se pasan)</label>
+                    <span id="numHojas" class="oc-hojas"></span>
+                </div>
+
+                <div class="oc-descarga">
+                    <div class="form-group">
+                        <label for="selAlcance">Descargar</label>
+                        <select id="selAlcance" class="form-control" onchange="cambiarAlcance()">
+                            <option value="hoja">Solo este cuaderno (fecha y turno elegidos)</option>
+                            <option value="dia">Día completo (día y noche)</option>
+                            <option value="rango">Rango de fechas</option>
+                        </select>
+                    </div>
+                    <div class="form-group oc-rango" style="display:none">
+                        <label for="rgDesde">Desde</label>
+                        <input type="date" id="rgDesde" class="form-control">
+                    </div>
+                    <div class="form-group oc-rango" style="display:none">
+                        <label for="rgHasta">Hasta</label>
+                        <input type="date" id="rgHasta" class="form-control">
+                    </div>
+                    <div class="form-group oc-rango" style="display:none">
+                        <label for="rgTurno">Turnos</label>
+                        <select id="rgTurno" class="form-control">
+                            <option value="ambos">Día y noche</option>
+                            <option value="dia">Solo día</option>
+                            <option value="noche">Solo noche</option>
+                        </select>
+                    </div>
+                    <div class="visor-descarga-btns">
+                        <button class="btn btn-primary" id="btnImg" onclick="descargar('png')">Descargar imagen</button>
+                        <button class="btn btn-primary" id="btnPdf" onclick="descargar('pdf')">Descargar PDF</button>
+                    </div>
+                </div>
+                <p class="oc-nota" id="notaRango" style="display:none">Máximo 15 días por descarga.</p>
+            </div>
+
+            <div class="content-panel oc-visor-panel">
+                <p id="visorVacio" style="display:none;color:var(--color-text-muted);padding:1rem 0">No hay cuaderno para esa fecha y turno.</p>
+                <div id="libroEscala"><div id="libroCont"></div></div>
+            </div>
+        </div>
+
+        <!-- ===================== PESTAÑA: EDITAR ===================== -->
+        <div class="app-screen" id="screen-editar">
+            <div class="content-panel">
+                <div class="panel-header">
+                    <div class="panel-title">Editar ocurrencias por hora</div>
+                    <div class="oc-acciones">
+                        <button class="btn btn-secondary" id="btnOcultas" style="display:none" onclick="mostrarOcultas()">Mostrar filas ocultas</button>
+                        <button class="btn btn-secondary" id="btnAgregar" onclick="agregarFila()">+ Agregar fila</button>
+                        <button class="btn btn-primary" id="btnGuardar" onclick="guardarCambios()">Guardar cambios</button>
+                    </div>
+                </div>
+                <p class="oc-nota"><b style="color:#1b0fa6">Azul:</b> textos del sistema · <b style="color:#e8222a">Rojo:</b> datos registrados. Cambia la hora o el texto y guarda; la hoja se actualiza sola. <b>↺</b> restaura el texto automático y <b>✕</b> quita una fila agregada o registrada.</p>
+                <div id="editorFilas"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="apn-config.js"></script>
+    <script src="apn-core.js"></script>
+    <script src="apn-reportes.js"></script>
+    <script>
+        const API_URL = (window.APN_CONFIG && APN_CONFIG.API_URL) || "";
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        const pad = n => String(n).padStart(2, '0');
+        const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        const sumar = (f, n) => { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+        const lunes = f => { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ymd(d); };
+        const SIN_BORRAR = ['inicio', 'hora', 'fin'];   // las 12 horas, el inicio y el fin nunca se quitan
+
+        const S = { fecha: '', turno: 'dia', sem: '', cuadernos: [], q: null, rows: [], sucio: false, listo: false, req: 0 };
+
+        // ------------------------------------------------------------ red (misma sesión que los demás HTML)
+        function tok() { try { return JSON.parse(localStorage.getItem('apn_token') || '""'); } catch (e) { return ''; } }
+        async function api(action, data) {
+            const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, token: tok(), data: data || {} }) }).then(x => x.json());
+            if (r.status === 'auth') { APN.login('Tu sesión venció. Vuelve a ingresar.'); throw new Error('auth'); }
+            return r;
+        }
+        const esAdmin = () => ((APN.usuario() || {}).rol === 'admin');
+
+        // ------------------------------------------------------------ arranque
+        document.addEventListener('DOMContentLoaded', () => {
+            const h = APN.ahora();
+            // turno y fecha de "ahora": el turno noche de madrugada sigue siendo del día que empezó
+            if (h.min >= 7 * 60 && h.min < 19 * 60) { S.fecha = h.fecha; S.turno = 'dia'; }
+            else if (h.min >= 19 * 60) { S.fecha = h.fecha; S.turno = 'noche'; }
+            else { S.fecha = sumar(h.fecha, -1); S.turno = 'noche'; }
+            $('ctlFecha').value = S.fecha; $('ctlTurno').value = S.turno;
+            $('chkLibro').checked = window.innerWidth >= 1000;   // en celular se ve una hoja a la vez (más legible)
+            const hoy = S.fecha; $('rgDesde').value = sumar(hoy, -6); $('rgHasta').value = hoy;
+            APN.init({ api: API_URL, modulo: 'ocurrencias', turno: false, toast: showToast, onListo: arrancarPagina });
+            const cont = $('libroCont');
+            cont.addEventListener('apnrender', () => { ajustarVisor(); saltarAFecha(); });   // al cargar las fuentes se redibuja
+            window.addEventListener('resize', ajustarVisor);
+        });
+        function arrancarPagina() {
+            const admin = esAdmin();
+            $('avisoRol').style.display = admin ? 'none' : 'block';
+            ['ctlRonda', 'ctlLimpieza', 'btnGuardar', 'btnAgregar', 'btnOcultas'].forEach(id => { $(id).disabled = !admin; });
+            if (!S.listo) { S.listo = true; actualizarTodo(false); }
+        }
+
+        // ------------------------------------------------------------ datos
+        async function cargarSemana(forzar) {
+            const sem = lunes(S.fecha);
+            if (!forzar && S.sem === sem && S.cuadernos.length) return true;
+            const mi = ++S.req;
+            const fechas = []; for (let i = 0; i < 7; i++) fechas.push(sumar(sem, i));
+            $('visorVacio').style.display = 'none';
+            $('libroEscala').style.opacity = '.45';
+            try {
+                const r = await api('getCuadernos', { fechas });
+                if (mi !== S.req) return false;           // llegó una respuesta más nueva
+                if (r.status !== 'success') throw new Error(r.message || 'Error al leer el cuaderno.');
+                S.cuadernos = r.cuadernos || []; S.sem = sem;
+                return true;
+            } catch (e) {
+                if (e.message !== 'auth') showToast('No se pudo cargar', esc(e.message || 'Revisa tu Internet.'), 'danger');
+                return false;
+            } finally { $('libroEscala').style.opacity = ''; }
+        }
+        async function actualizarTodo(forzar) {
+            const ok = await cargarSemana(forzar);
+            if (!ok && !S.cuadernos.length) return;
+            S.q = S.cuadernos.find(c => c.fecha === S.fecha && c.turno === S.turno) || null;
+            S.sucio = false;
+            if (S.q) {
+                $('ctlRonda').value = S.q.supervisionHora || '';
+                $('ctlLimpieza').checked = !!S.q.limpiezaActiva;
+            }
+            renderVisor(); armarFilas(); renderEditor();
+        }
+
+        // ------------------------------------------------------------ fecha y turno
+        function confirmarDescarte() { return !S.sucio || confirm('Tienes cambios sin guardar en el editor. ¿Descartarlos?'); }
+        function cambiarFecha() {
+            const f = $('ctlFecha').value, t = $('ctlTurno').value;
+            if (!f) return;
+            if (!confirmarDescarte()) { $('ctlFecha').value = S.fecha; $('ctlTurno').value = S.turno; return; }
+            S.fecha = f; S.turno = t; actualizarTodo(false);
+        }
+        function moverDia(n) { if (!confirmarDescarte()) return; S.fecha = sumar(S.fecha, n); $('ctlFecha').value = S.fecha; actualizarTodo(false); }
+        function irAHoy() { if (!confirmarDescarte()) return; S.fecha = APN.hoy(); $('ctlFecha').value = S.fecha; actualizarTodo(false); }
+
+        // ------------------------------------------------------------ visor (hojas A4 / libro)
+        function renderVisor() {
+            const cont = $('libroCont');
+            if (!window.APNReportes) { cont.innerHTML = '<p style="padding:1rem">No se pudo cargar apn-reportes.js</p>'; return; }
+            if (!S.q) { cont.innerHTML = ''; $('visorVacio').style.display = 'block'; $('numHojas').textContent = ''; ajustarVisor(); return; }
+            $('visorVacio').style.display = 'none';
+            APNReportes.onAviso = m => showToast('Aviso', m, 'warning');
+            const libro = $('chkLibro').checked, cfg = APN.config() || {};
+            cont.style.cssText = 'width:' + (libro ? 1588 : 794) + 'px;max-width:none;padding:0;overflow:visible;box-shadow:none;background:transparent;transform-origin:top left';
+            APNReportes.renderCuaderno(cont, libro ? S.cuadernos : [S.q], libro ? { libro: true, portada: cfg.portadaCuadernoUrl || '', tituloPortada: 'Cuaderno de Ocurrencias' } : {});
+            const n = cont.querySelectorAll('.apn-hoja[data-fechas="' + S.fecha + '"][data-turno="' + S.turno + '"]').length;
+            $('numHojas').textContent = n + (n === 1 ? ' hoja' : ' hojas') + ' en este cuaderno';
+            ajustarVisor(); saltarAFecha();
+        }
+        function saltarAFecha() {
+            if (!$('chkLibro').checked) return;
+            try { APNReportes.irAFecha($('libroCont'), S.fecha, { turno: S.turno, animar: false }); } catch (e) {}
+        }
+        function ajustarVisor() {
+            const w = $('libroEscala'), c = $('libroCont');
+            const base = c.offsetWidth || 794;
+            const s = Math.min(1, (w.clientWidth - 2) / base);
+            c.style.transform = 'scale(' + s + ')';
+            w.style.height = (c.offsetHeight * s + 6) + 'px';
+        }
+
+        // ------------------------------------------------------------ editor por hora
+        function armarFilas() {
+            S.rows = [];
+            if (!S.q) return;
+            (S.q.filas || []).forEach(f => S.rows.push({
+                key: f.key, tipo: f.tipo, origen: f.origen, hi: f.hi || '', hs: f.hs || '', texto: f.texto || '', editada: !!f.editada,
+                o: { hi: f.hi || '', hs: f.hs || '', texto: f.texto || '' }
+            }));
+        }
+        function renderEditor() {
+            const box = $('editorFilas');
+            if (!S.q) { box.innerHTML = '<p class="oc-nota">No hay cuaderno para esa fecha y turno.</p>'; $('btnOcultas').style.display = 'none'; return; }
+            const admin = esAdmin();
+            box.innerHTML = S.rows.map((r, i) => {
+                const puedeQuitar = SIN_BORRAR.indexOf(r.origen) === -1;
+                return '<div class="oc-fila ' + (r.tipo === 'sistema' ? 'sistema' : 'dato') + (r.borrar ? ' borrado' : '') + '" data-i="' + i + '">' +
+                    '<div class="oc-h"><label>H.I</label><input type="time" class="form-control" data-c="hi" value="' + esc(r.hi) + '"' + (admin ? '' : ' disabled') + '></div>' +
+                    '<div class="oc-h"><label>H.S</label><input type="time" class="form-control" data-c="hs" value="' + esc(r.hs) + '"' + (admin ? '' : ' disabled') + '></div>' +
+                    '<textarea class="form-control" data-c="texto" rows="2"' + (admin ? '' : ' disabled') + '>' + esc(r.texto) + '</textarea>' +
+                    '<div class="oc-acc">' +
+                    (r.editada && admin ? '<button type="button" class="btn btn-secondary oc-ib" data-act="res" title="Restaurar el texto automático">↺</button>' : '') +
+                    (puedeQuitar && admin ? '<button type="button" class="btn btn-secondary oc-ib oc-del" data-act="del" title="' + (r.borrar ? 'Deshacer' : 'Quitar fila') + '">' + (r.borrar ? '⟲' : '✕') + '</button>' : '') +
+                    '</div></div>';
+            }).join('');
+            const nOc = ((S.q.ediciones || {}).ocultas || []).length;
+            $('btnOcultas').style.display = nOc ? '' : 'none';
+            $('btnOcultas').textContent = 'Mostrar filas ocultas (' + nOc + ')';
+        }
+        document.addEventListener('input', e => {
+            const t = e.target; if (!t.dataset || !t.dataset.c) return;
+            const f = t.closest('.oc-fila'); if (!f) return;
+            const r = S.rows[+f.dataset.i]; if (!r) return;
+            r[t.dataset.c] = t.value; S.sucio = true;
+        });
+        document.addEventListener('click', e => {
+            const b = e.target.closest && e.target.closest('[data-act]'); if (!b) return;
+            const f = b.closest('.oc-fila'); if (!f) return;
+            const i = +f.dataset.i, r = S.rows[i]; if (!r) return;
+            if (b.dataset.act === 'res') { r.restaurar = true; guardarCambios(); return; }
+            if (b.dataset.act === 'del') {
+                if (r.nuevo) { S.rows.splice(i, 1); }
+                else r.borrar = !r.borrar;
+                S.sucio = true; renderEditor();
+            }
+        });
+        function agregarFila() {
+            if (!S.q) return;
+            const ini = S.turno === 'noche' ? '19:00' : '07:00';
+            S.rows.push({ key: 'n:' + Date.now().toString(36), nuevo: true, tipo: 'dato', origen: 'manual', hi: ini, hs: '', texto: '', o: {} });
+            S.sucio = true; renderEditor();
+            const ta = document.querySelectorAll('#editorFilas textarea'); if (ta.length) { const u = ta[ta.length - 1]; u.focus(); u.scrollIntoView({ block: 'center' }); }
+        }
+        // Solo se guardan los cambios que hiciste (hora o texto distinto al que venía); lo demás sigue automático
+        function armarEdiciones() {
+            const base = (S.q && S.q.ediciones) || {};
+            const textos = JSON.parse(JSON.stringify(base.textos || {}));
+            const extras = (base.extras || []).map(x => Object.assign({}, x));
+            const ocultas = (base.ocultas || []).slice();
+            S.rows.forEach(r => {
+                const esExtra = r.key.indexOf('x:') === 0;
+                if (r.nuevo) { if (!r.borrar) extras.push({ id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), hi: r.hi, hs: r.hs, texto: r.texto, tipo: 'dato' }); return; }
+                if (r.borrar) {
+                    if (esExtra) { const k = extras.findIndex(x => 'x:' + x.id === r.key); if (k >= 0) extras.splice(k, 1); }
+                    else if (ocultas.indexOf(r.key) === -1) ocultas.push(r.key);
+                    delete textos[r.key]; return;
+                }
+                if (r.restaurar) { delete textos[r.key]; return; }
+                if (r.texto === r.o.texto && r.hi === r.o.hi && r.hs === r.o.hs) return;
+                if (esExtra) {
+                    const x = extras.find(x => 'x:' + x.id === r.key);
+                    if (x) { x.texto = r.texto; x.hi = r.hi; x.hs = r.hs; }
+                } else {
+                    const t = textos[r.key] = textos[r.key] || {};
+                    if (r.texto !== r.o.texto) t.texto = r.texto;
+                    if (r.hi !== r.o.hi) t.hi = r.hi;
+                    if (r.hs !== r.o.hs) t.hs = r.hs;
+                }
+            });
+            return { textos, extras, ocultas };
+        }
+        async function guardarCambios(opts) {
+            if (!S.q) return;
+            if (!esAdmin()) { showToast('Solo administrador', 'Guardar cambios requiere una cuenta de administrador.', 'warning'); return; }
+            const ed = armarEdiciones();
+            if (opts && opts.sinOcultas) ed.ocultas = [];
+            const btn = $('btnGuardar'); btn.disabled = true; btn.textContent = 'Guardando…';
+            try {
+                const r = await api('saveCuaderno', { fecha: S.fecha, turno: S.turno, ediciones: ed });
+                if (r.status === 'success') { showToast('Guardado', 'La hoja se actualizó.', 'success'); await actualizarTodo(true); }
+                else showToast('No se pudo guardar', esc(r.message || 'Intenta de nuevo.'), 'danger');
+            } catch (e) { if (e.message !== 'auth') showToast('Sin conexión', 'No se pudo guardar. Revisa tu Internet.', 'danger'); }
+            finally { btn.disabled = !esAdmin(); btn.textContent = 'Guardar cambios'; }
+        }
+        function mostrarOcultas() { if (confirm('¿Volver a mostrar todas las filas que quitaste en este cuaderno?')) guardarCambios({ sinOcultas: true }); }
+        async function guardarOpciones() {
+            if (!S.q) return;
+            if (!esAdmin()) { showToast('Solo administrador', 'Cambiar estas opciones requiere una cuenta de administrador.', 'warning'); $('ctlRonda').value = S.q.supervisionHora || ''; $('ctlLimpieza').checked = !!S.q.limpiezaActiva; return; }
+            try {
+                const r = await api('saveCuaderno', { fecha: S.fecha, turno: S.turno, limpiezaActiva: $('ctlLimpieza').checked, supervisionHora: $('ctlRonda').value });
+                if (r.status === 'success') { showToast('Guardado', 'Opciones del turno actualizadas.', 'success'); const sucio = S.sucio; await actualizarTodo(true); S.sucio = sucio; }
+                else showToast('No se pudo guardar', esc(r.message || ''), 'danger');
+            } catch (e) { if (e.message !== 'auth') showToast('Sin conexión', 'No se pudo guardar. Revisa tu Internet.', 'danger'); }
+        }
+
+        // ------------------------------------------------------------ descargas (imagen / PDF) con filtro por fechas
+        function cambiarAlcance() {
+            const rango = $('selAlcance').value === 'rango';
+            document.querySelectorAll('.oc-rango').forEach(e => { e.style.display = rango ? '' : 'none'; });
+            $('notaRango').style.display = rango ? '' : 'none';
+        }
+        async function cuadernosDe(fechas) {
+            const faltan = fechas.filter(f => !S.cuadernos.some(c => c.fecha === f));
+            let extra = [];
+            for (let i = 0; i < faltan.length; i += 7) {
+                const r = await api('getCuadernos', { fechas: faltan.slice(i, i + 7) });
+                if (r.status !== 'success') throw new Error(r.message || 'No se pudo leer el cuaderno.');
+                extra = extra.concat(r.cuadernos || []);
+            }
+            return S.cuadernos.concat(extra);
+        }
+        async function descargar(tipo) {
+            if (!window.APNReportes) { showToast('No disponible', 'No se cargó apn-reportes.js', 'danger'); return; }
+            const alc = $('selAlcance').value;
+            let fechas, turnos, nombre;
+            if (alc === 'hoja') { fechas = [S.fecha]; turnos = [S.turno]; nombre = 'cuaderno_' + S.fecha + '_' + S.turno; }
+            else if (alc === 'dia') { fechas = [S.fecha]; turnos = ['dia', 'noche']; nombre = 'cuaderno_' + S.fecha; }
+            else {
+                const d = $('rgDesde').value, h = $('rgHasta').value;
+                if (!d || !h || d > h) { showToast('Revisa las fechas', 'Elige un "Desde" y un "Hasta" válidos.', 'warning'); return; }
+                fechas = []; for (let f = d; f <= h && fechas.length < 40; f = sumar(f, 1)) fechas.push(f);
+                if (fechas.length > 15) { showToast('Rango muy largo', 'Máximo 15 días por descarga.', 'warning'); return; }
+                const t = $('rgTurno').value; turnos = t === 'ambos' ? ['dia', 'noche'] : [t];
+                nombre = 'cuaderno_' + d + '_a_' + h + (t === 'ambos' ? '' : '_' + t);
+            }
+            const botones = [$('btnImg'), $('btnPdf')]; botones.forEach(b => { b.disabled = true; });
+            showToast('Generando...', 'Armando las hojas A4.', 'warning');
+            let host = null;
+            try {
+                const todos = await cuadernosDe(fechas);
+                const lista = []; fechas.forEach(f => turnos.forEach(t => { const c = todos.find(x => x.fecha === f && x.turno === t); if (c) lista.push(c); }));
+                if (!lista.length) { showToast('Sin datos', 'No hay cuadernos en ese rango.', 'warning'); return; }
+                await APNReportes.listo;
+                host = document.createElement('div');
+                host.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff';
+                document.body.appendChild(host);
+                APNReportes.renderCuaderno(host, lista, {});
+                if (tipo === 'png') await APNReportes.descargarPNG(host, nombre); else await APNReportes.descargarPDF(host, nombre);
+            } catch (e) { if (e.message !== 'auth') { console.error(e); showToast('Error', 'No se pudo generar el archivo. Verifica tu Internet.', 'danger'); } }
+            finally { if (host) host.remove(); botones.forEach(b => { b.disabled = false; }); }
+        }
+
+        // ------------------------------------------------------------ pestañas y avisos
+        function switchTab(tabId) {
+            document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+            $('screen-' + tabId).classList.add('active'); $('tab-btn-' + tabId).classList.add('active');
+            window.scrollTo(0, 0);
+            if (tabId === 'cuaderno') setTimeout(() => { ajustarVisor(); saltarAFecha(); }, 30);
+        }
+        window.addEventListener('beforeunload', e => { if (S.sucio) { e.preventDefault(); e.returnValue = ''; } });
+
+        function showToast(title, message, type = 'success') {
+            const container = $('toastContainer');
+            const toast = document.createElement('div');
+            let toastClass = 'toast-success';
+            if (type === 'danger') toastClass = 'toast-danger';
+            if (type === 'warning') toastClass = 'toast-warning';
+            toast.className = `toast ${toastClass}`;
+            toast.innerHTML = `<div class="toast-content"><div class="toast-title">${title}</div><div class="toast-msg">${message}</div></div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 50);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => { toast.remove(); }, 300); }, 4000);
+        }
+    </script>
+    <script>if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) { navigator.serviceWorker.register('sw.js').catch(function () {}); }</script>
+</body>
+</html>
