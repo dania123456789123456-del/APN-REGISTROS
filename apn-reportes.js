@@ -261,11 +261,21 @@
     if (l.indexOf(f) === -1) l.push(f);
     hoja.dataset.fechas = l.join(',');
   }
+  // El personal de limpieza va en el cuaderno de ocurrencias, pero NO en las tablas de control de personal.
+  // o.personas = [{nombre, rol}] (rol/cargo 'limpieza'); si no se pasa la lista, no se excluye a nadie.
+  function nombresLimpieza(personas) {
+    var set = {};
+    (personas || []).forEach(function (p) {
+      if (p && p.nombre && String(p.rol || p.cargo || '').trim().toLowerCase() === 'limpieza') set[String(p.nombre).trim().toLowerCase()] = true;
+    });
+    return set;
+  }
   function personalSemana(cont, o, inicio) {
     var cfg = o.config || {};
     var filtro = o.trabajador;
     var fin = addDays(inicio, 6);
-    var regs = (o.registros || []).map(normPersonal).filter(function (r) { return r.nombre && r.fecha >= inicio && r.fecha <= fin && (!filtro || r.nombre === filtro); });
+    var limpieza = nombresLimpieza(o.personas);
+    var regs = (o.registros || []).map(normPersonal).filter(function (r) { return r.nombre && !limpieza[String(r.nombre).trim().toLowerCase()] && r.fecha >= inicio && r.fecha <= fin && (!filtro || r.nombre === filtro); });
     var conDatos = {}; regs.forEach(function (r) { conDatos[r.fecha] = true; });
     var dias = elegirDias(diasDeSemana(inicio, conDatos), o.dias, inicio);
 
