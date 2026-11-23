@@ -1452,7 +1452,7 @@ tr:hover td { background-color: rgba(255,255,255,.55) !important; }
             if (!cfg.logoPieUrl) cfg.logoPieUrl = LOGO_URL;
             contenedor.style.cssText = 'width:1123px;padding:0;overflow:visible;max-width:none;box-shadow:none';
             contenedor.style.setProperty('background', 'transparent', 'important');
-            APNReportes.renderPersonal(contenedor, { registros: appState.registros, config: cfg, fechaInicio: fechaAISO(dias[0]) });
+            APNReportes.renderPersonal(contenedor, { registros: appState.registros, personas: APN.personas().map(p => ({ nombre: p.nombre, rol: p.rol })), config: cfg, fechaInicio: fechaAISO(dias[0]) });
             ajustarVisor();
         }
 
